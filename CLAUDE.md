@@ -75,6 +75,12 @@ docker-compose up -d --build   # Start all services
 
 ## Git Workflow (MUST FOLLOW)
 
+### Auto-Detection — Claude MUST proactively identify when to branch & commit:
+- **New branch needed:** When user asks to add a feature, fix a bug, refactor, or any multi-file change → suggest creating a branch BEFORE writing code
+- **Commit needed:** When a logical unit of work is complete and code is working → suggest committing with a proper message
+- **Branch type detection:** "add/create/build" → `feature/*`, "fix/bug/broken" → `fix/*`, "refactor/clean up" → `refactor/*`, "upgrade/config" → `chore/*`, "urgent/critical" → `hotfix/*`
+- Do NOT wait for the user to say "commit" or "create branch" — be proactive
+
 ### Branch Strategy
 - `main` — production-ready, protected (never commit directly)
 - `develop` — integration branch for next release

@@ -131,6 +131,87 @@ docs(readme): update setup instructions for docker workflow
 
 ---
 
+## Auto-Detection: When to Branch & When to Commit
+
+Claude MUST automatically detect when a new branch or commit is needed.
+Do NOT wait for the user to say "create a branch" or "commit this" — proactively
+suggest or act based on the signals below.
+
+### When to CREATE A NEW BRANCH (suggest to user before starting work)
+
+**ALWAYS create a new branch when:**
+- The user asks to build a new feature ("add notifications", "create a dashboard widget")
+- The user asks to fix a bug ("the login is broken", "fix the 500 error on appointments")
+- The user asks for refactoring ("clean up the API client", "restructure the components")
+- The user asks to upgrade dependencies ("update prisma", "upgrade react")
+- The task will touch 3+ files across multiple modules
+- The task introduces a new API endpoint, DB model, or page
+- The task changes existing behavior or business logic
+
+**How to decide the branch type:**
+- User says "add", "create", "build", "implement", "new" → `feature/*`
+- User says "fix", "broken", "bug", "error", "crash", "not working" → `fix/*`
+- User says "refactor", "clean up", "restructure", "reorganize", "simplify" → `refactor/*`
+- User says "update deps", "upgrade", "config", "CI", "docker" → `chore/*`
+- User says "add tests", "write tests", "test coverage" → `test/*`
+- User says "update docs", "write docs", "document" → `docs/*`
+- User says "urgent", "production issue", "critical bug" → `hotfix/*`
+
+**Action:** Before writing any code, tell the user:
+> "This looks like a [feature/fix/refactor]. I'll create branch `[type]/[name]` from develop. Shall I proceed?"
+
+**Do NOT create a branch when:**
+- The change is a one-line typo fix the user asked to commit directly
+- The user explicitly says "commit to current branch"
+- You're already on the correct feature branch for the task
+
+### When to COMMIT (suggest to user at the right moment)
+
+**Suggest a commit when:**
+- A logical unit of work is complete (e.g., a new component + its route are wired up)
+- A bug fix is done and tested/verified
+- A new API endpoint is fully functional (controller + service + DTO)
+- A database migration has been created and applied
+- A refactoring pass is complete and the app still works
+- Tests have been added or updated and they pass
+- Config/infra changes are done (Dockerfile, docker-compose, CI)
+
+**How to group commits (keep them atomic):**
+- Backend model + migration + service → one commit
+- Frontend component + page + route → one commit
+- Related test files → one commit
+- Config changes (eslint, tsconfig, docker) → one commit
+- Do NOT mix frontend and backend changes in the same commit unless they are tightly coupled (e.g., a new API endpoint + the frontend call to it)
+
+**Action:** After completing a logical unit, tell the user:
+> "The [feature/fix] is complete. Ready to commit with message: `feat(scope): description`. Shall I commit?"
+
+**Do NOT commit when:**
+- Work is still in progress and the code is in a broken state
+- The user hasn't asked and the change is trivial (formatting, comments)
+- You're in the middle of a multi-step task — wait until a logical checkpoint
+
+### Decision Flowchart
+
+```
+User gives a task
+    │
+    ├─ Is it a new feature, fix, refactor, or multi-file change?
+    │   YES → Suggest creating a new branch
+    │   NO  → Work on current branch
+    │
+    ├─ After completing work:
+    │   Is a logical unit done and code is working?
+    │   YES → Suggest committing
+    │   NO  → Continue working
+    │
+    └─ Multiple logical units done?
+        YES → Suggest separate commits for each unit
+        NO  → Single commit
+```
+
+---
+
 ## Workflow: Feature Development
 
 Claude MUST follow this workflow when implementing features or fixes:
