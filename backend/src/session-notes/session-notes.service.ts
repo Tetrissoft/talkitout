@@ -12,18 +12,37 @@ export class SessionNotesService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateSessionNoteDto, userId: string) {
-    const doctor = await this.prisma.doctor.findUnique({
-      where: { userId },
-    });
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    let doctorId: string;
 
-    if (!doctor) {
-      throw new ForbiddenException('Only doctors can create session notes');
+    if (user?.role === 'admin') {
+      // Admin can create notes — use the appointment's doctor as the author,
+      // or if dto.doctorId is provided, use that
+      if (dto.appointmentId) {
+        const appointment = await this.prisma.appointment.findUnique({
+          where: { id: dto.appointmentId },
+        });
+        if (!appointment) {
+          throw new NotFoundException('Appointment not found');
+        }
+        doctorId = appointment.doctorId;
+      } else {
+        throw new ForbiddenException('Admin must provide an appointmentId');
+      }
+    } else {
+      const doctor = await this.prisma.doctor.findUnique({
+        where: { userId },
+      });
+      if (!doctor) {
+        throw new ForbiddenException('Only doctors or admins can create session notes');
+      }
+      doctorId = doctor.id;
     }
 
-    return this.prisma.sessionNote.create({
+    const note = await this.prisma.sessionNote.create({
       data: {
         appointmentId: dto.appointmentId,
-        doctorId: doctor.id,
+        doctorId,
         customerId: dto.customerId,
         content: dto.content,
         isPrivate: dto.isPrivate ?? true,
@@ -34,6 +53,8 @@ export class SessionNotesService {
         appointment: true,
       },
     });
+
+    return { success: true, data: note };
   }
 
   async findAll(userId: string, userRole: string) {
@@ -55,7 +76,7 @@ export class SessionNotesService {
       }
     }
 
-    return this.prisma.sessionNote.findMany({
+    const notes = await this.prisma.sessionNote.findMany({
       where,
       include: {
         doctor: { include: { user: { select: { name: true, email: true } } } },
@@ -64,10 +85,12 @@ export class SessionNotesService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return { success: true, data: notes };
   }
 
   async findByCustomer(customerId: string) {
-    return this.prisma.sessionNote.findMany({
+    const notes = await this.prisma.sessionNote.findMany({
       where: { customerId },
       include: {
         doctor: { include: { user: { select: { name: true, email: true } } } },
@@ -75,6 +98,8 @@ export class SessionNotesService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return { success: true, data: notes };
   }
 
   async findOne(id: string) {
@@ -91,18 +116,23 @@ export class SessionNotesService {
       throw new NotFoundException('Session note not found');
     }
 
-    return note;
+    return { success: true, data: note };
   }
 
   async update(id: string, dto: UpdateSessionNoteDto, userId: string) {
-    const note = await this.findOne(id);
-    const doctor = await this.prisma.doctor.findUnique({ where: { userId } });
+    const result = await this.findOne(id);
+    const note = result.data;
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
-    if (!doctor || note.doctorId !== doctor.id) {
-      throw new ForbiddenException('You can only edit your own notes');
+    // Admin can edit any note; therapist/intern can only edit their own
+    if (user?.role !== 'admin') {
+      const doctor = await this.prisma.doctor.findUnique({ where: { userId } });
+      if (!doctor || note.doctorId !== doctor.id) {
+        throw new ForbiddenException('You can only edit your own notes');
+      }
     }
 
-    return this.prisma.sessionNote.update({
+    const updated = await this.prisma.sessionNote.update({
       where: { id },
       data: dto,
       include: {
@@ -111,10 +141,13 @@ export class SessionNotesService {
         appointment: true,
       },
     });
+
+    return { success: true, data: updated };
   }
 
   async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.sessionNote.delete({ where: { id } });
+    await this.findOne(id); // throws if not found
+    await this.prisma.sessionNote.delete({ where: { id } });
+    return { success: true, message: 'Session note deleted' };
   }
 }

@@ -196,6 +196,155 @@ export class CheckinsService {
     });
   }
 
+  // ─── Fill Check-in on Behalf of Patient ───
+
+  async startCheckInForPatient(customerId: string, filledByUserId: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const existing = await this.prisma.dailyCheckIn.findUnique({
+      where: {
+        customerId_date: {
+          customerId,
+          date: today,
+        },
+      },
+      include: {
+        responses: { include: { question: true } },
+        filledBy: { select: { id: true, name: true, role: true } },
+      },
+    });
+
+    if (existing) {
+      // Return existing check-in with questions to answer
+      const questions = await this.getQuestionsForPatient(customerId);
+      return { success: true, data: { checkIn: existing, questions } };
+    }
+
+    const checkIn = await this.prisma.dailyCheckIn.create({
+      data: {
+        customerId,
+        date: today,
+        filledById: filledByUserId,
+      },
+      include: {
+        responses: { include: { question: true } },
+        filledBy: { select: { id: true, name: true, role: true } },
+      },
+    });
+
+    const questions = await this.getQuestionsForPatient(customerId);
+    return { success: true, data: { checkIn, questions } };
+  }
+
+  async submitResponsesForPatient(
+    checkInId: string,
+    customerId: string,
+    dto: SubmitCheckInResponseDto,
+    filledByUserId: string,
+  ) {
+    const checkIn = await this.prisma.dailyCheckIn.findUnique({
+      where: { id: checkInId },
+    });
+
+    if (!checkIn) {
+      throw new NotFoundException('Check-in not found');
+    }
+
+    if (checkIn.customerId !== customerId) {
+      throw new BadRequestException('Check-in does not belong to this patient');
+    }
+
+    if (checkIn.completedAt) {
+      throw new BadRequestException('This check-in has already been completed');
+    }
+
+    // Validate questions
+    const questionIds = dto.answers.map((a) => a.questionId);
+    const questions = await this.prisma.checkInQuestion.findMany({
+      where: { id: { in: questionIds }, isActive: true },
+    });
+
+    if (questions.length !== questionIds.length) {
+      throw new BadRequestException('Some questions are invalid or inactive');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const answer of dto.answers) {
+        await tx.checkInResponse.upsert({
+          where: {
+            checkInId_questionId: {
+              checkInId,
+              questionId: answer.questionId,
+            },
+          },
+          create: {
+            checkInId,
+            questionId: answer.questionId,
+            answerText: answer.answerText,
+            answerScale: answer.answerScale,
+            answerChoice: answer.answerChoice,
+          },
+          update: {
+            answerText: answer.answerText,
+            answerScale: answer.answerScale,
+            answerChoice: answer.answerChoice,
+          },
+        });
+      }
+
+      await tx.dailyCheckIn.update({
+        where: { id: checkInId },
+        data: {
+          completedAt: new Date(),
+          filledById: filledByUserId,
+        },
+      });
+    });
+
+    const result = await this.prisma.dailyCheckIn.findUnique({
+      where: { id: checkInId },
+      include: {
+        responses: { include: { question: true } },
+        filledBy: { select: { id: true, name: true, role: true } },
+      },
+    });
+
+    return { success: true, data: result };
+  }
+
+  private async getQuestionsForPatient(customerId: string) {
+    // Get patient's assigned categories
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    const categories = (customer?.checkinCategories as string[]) || [];
+
+    const where: any = { isActive: true };
+    if (categories.length > 0) {
+      where.category = { in: categories };
+    }
+
+    // Get all matching questions and randomly pick 5
+    const allQuestions = await this.prisma.checkInQuestion.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    // Shuffle and take up to 5
+    const shuffled = allQuestions.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 5);
+  }
+
   async getMyCheckIns(userId: string, dateFrom?: string, dateTo?: string) {
     const customer = await this.prisma.customer.findUnique({
       where: { userId },
@@ -224,6 +373,7 @@ export class CheckinsService {
           include: { question: true },
           orderBy: { question: { sortOrder: 'asc' } },
         },
+        filledBy: { select: { id: true, name: true, role: true } },
       },
       orderBy: { date: 'desc' },
     });
@@ -240,6 +390,7 @@ export class CheckinsService {
         customer: {
           include: { user: { select: { name: true, email: true } } },
         },
+        filledBy: { select: { id: true, name: true, role: true } },
       },
     });
 

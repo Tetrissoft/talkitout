@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsUUID, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsUUID, IsDateString, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCustomerDto {
@@ -31,4 +31,10 @@ export class CreateCustomerDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @ApiProperty({ example: ['mood', 'anxiety', 'sleep'], required: false })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  checkinCategories?: string[];
 }

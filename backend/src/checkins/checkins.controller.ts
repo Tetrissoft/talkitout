@@ -91,6 +91,26 @@ export class CheckinsController {
     return this.checkinsService.getMyCheckIns(req.user.id, dateFrom, dateTo);
   }
 
+  @Post('customer/:customerId/fill')
+  @Roles('admin', 'therapist', 'intern')
+  startCheckInForPatient(
+    @Param('customerId') customerId: string,
+    @Request() req,
+  ) {
+    return this.checkinsService.startCheckInForPatient(customerId, req.user.id);
+  }
+
+  @Post('customer/:customerId/:checkInId/responses')
+  @Roles('admin', 'therapist', 'intern')
+  submitResponsesForPatient(
+    @Param('customerId') customerId: string,
+    @Param('checkInId') checkInId: string,
+    @Body() dto: SubmitCheckInResponseDto,
+    @Request() req,
+  ) {
+    return this.checkinsService.submitResponsesForPatient(checkInId, customerId, dto, req.user.id);
+  }
+
   @Get('customer/:customerId')
   @Roles('admin', 'therapist', 'intern')
   getCustomerCheckIns(
