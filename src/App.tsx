@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import BookAppointment from "./pages/BookAppointment";
 import BookIntern from "./pages/BookIntern";
 import Login from "./pages/Login";
+import AssessmentPlugin from "./pages/AssessmentPlugin";
 
 import Dashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
@@ -38,6 +39,9 @@ const App = () => {
               <Route path="/signup" element={<Navigate to="/login?mode=signup" replace />} />
               <Route path="/book-appointment" element={<BookAppointment />} />
               <Route path="/book-intern" element={<BookIntern />} />
+
+              {/* Embeddable Assessment Plugin Route */}
+              <Route path="/plugin/assessment/:testId" element={<AssessmentPlugin />} />
 
               {/* Admin Routes */}
               <Route path="/admin/login" element={<Login />} />

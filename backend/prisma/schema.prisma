@@ -110,3 +110,28 @@ enum AppointmentStatus {
   cancelled
   no_show
 }
+
+model AssessmentParticipant {
+  id        String                 @id @default(uuid())
+  name      String
+  email     String
+  age       Int?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  submissions AssessmentSubmission[]
+
+  @@map("assessment_participants")
+}
+
+model AssessmentSubmission {
+  id             String                @id @default(uuid())
+  participantId  String                @map("participant_id")
+  testType       String                // e.g., "anxiety_test"
+  answers        Json                  // Store user's specific answers
+  report         Json?                 // Store the AI generated report
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  participant    AssessmentParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@map("assessment_submissions")
+}
