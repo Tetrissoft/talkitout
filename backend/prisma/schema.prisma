@@ -53,14 +53,17 @@ model Customer {
   address          String?
   emergencyContact String?        @map("emergency_contact")
   notes            String?
-  checkinCategories Json?         @map("checkin_categories")
-  createdAt        DateTime       @default(now())
+  checkinCategories  Json?         @map("checkin_categories")
+  telegramChatId     String?       @unique @map("telegram_chat_id")
+  createdAt          DateTime      @default(now())
   updatedAt        DateTime       @updatedAt
   appointments     Appointment[]
   assignedIntern   Doctor?        @relation("CustomerIntern", fields: [assignedInternId], references: [id])
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionNotes     SessionNote[]
   dailyCheckIns    DailyCheckIn[]
+  miraConversations MiraConversation[]
+  crisisAlerts      CrisisAlert[]
 
   @@map("customers")
 }
@@ -140,16 +143,18 @@ model CheckInQuestion {
 }
 
 model DailyCheckIn {
-  id          String            @id @default(uuid())
-  customerId  String            @map("customer_id")
-  filledById  String?           @map("filled_by_id")
-  date        DateTime          @db.Date
-  completedAt DateTime?         @map("completed_at")
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  customer    Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  filledBy    User?             @relation(fields: [filledById], references: [id])
-  responses   CheckInResponse[]
+  id                String            @id @default(uuid())
+  customerId        String            @map("customer_id")
+  filledById        String?           @map("filled_by_id")
+  date              DateTime          @db.Date
+  completedAt       DateTime?         @map("completed_at")
+  selectedQuestions Json?             @map("selected_questions") // Array of question IDs selected for this check-in
+  source            CheckInSource     @default(web)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  filledBy          User?             @relation(fields: [filledById], references: [id])
+  responses         CheckInResponse[]
 
   @@unique([customerId, date])
   @@map("daily_checkins")
@@ -197,6 +202,12 @@ enum CheckInQuestionType {
   free_text
 }
 
+enum CheckInSource {
+  web
+  telegram
+  on_behalf
+}
+
 enum CheckInQuestionCategory {
   mood
   anxiety
@@ -206,6 +217,64 @@ enum CheckInQuestionCategory {
   stress
   mindfulness
   general
+}
+
+// ─── Mira AI Companion ───
+
+model MiraConversation {
+  id          String            @id @default(uuid())
+  customerId  String            @map("customer_id")
+  mode        MiraMode
+  summary     String?
+  startedAt   DateTime          @default(now()) @map("started_at")
+  endedAt     DateTime?         @map("ended_at")
+  customer    Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages    MiraMessage[]
+
+  @@map("mira_conversations")
+}
+
+model MiraMessage {
+  id              String            @id @default(uuid())
+  conversationId  String            @map("conversation_id")
+  role            MiraMessageRole
+  content         String
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  conversation    MiraConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("mira_messages")
+}
+
+model CrisisAlert {
+  id              String          @id @default(uuid())
+  customerId      String          @map("customer_id")
+  conversationId  String?         @map("conversation_id")
+  triggerMessage  String          @map("trigger_message")
+  severity        CrisisSeverity
+  notifiedAt      DateTime        @default(now()) @map("notified_at")
+  resolvedAt      DateTime?       @map("resolved_at")
+  resolvedBy      String?         @map("resolved_by")
+  customer        Customer        @relation(fields: [customerId], references: [id])
+
+  @@map("crisis_alerts")
+}
+
+enum MiraMode {
+  checkin
+  free_chat
+}
+
+enum MiraMessageRole {
+  user
+  assistant
+  system
+}
+
+enum CrisisSeverity {
+  low
+  medium
+  high
 }
 
 // ─── Assessment Models ───

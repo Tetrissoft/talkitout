@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { usersApi, doctorsApi, customersApi, appointmentsApi } from '@/services/api';
+import { usersApi, doctorsApi, customersApi, appointmentsApi, miraApi } from '@/services/api';
+import type { CrisisAlert } from '@/types/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Stethoscope, UserCog, Calendar } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Users, Stethoscope, UserCog, Calendar, ShieldAlert } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [crisisAlerts, setCrisisAlerts] = useState<CrisisAlert[]>([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalDoctors: 0,
@@ -20,11 +27,12 @@ export default function Dashboard() {
     const loadStats = async () => {
       setIsLoading(true);
       try {
-        const [usersRes, doctorsRes, customersRes, appointmentsRes] = await Promise.all([
+        const [usersRes, doctorsRes, customersRes, appointmentsRes, alertsRes] = await Promise.all([
           usersApi.getAll(),
           doctorsApi.getAll(),
           customersApi.getAll(),
           appointmentsApi.getAll(),
+          (user?.role === 'admin' || user?.role === 'therapist') ? miraApi.getCrisisAlerts() : Promise.resolve({ success: true, data: [] }),
         ]);
 
         setStats({
@@ -39,6 +47,10 @@ export default function Dashboard() {
           totalCustomers: customersRes.success && customersRes.data ? customersRes.data.total : 0,
           totalAppointments: appointmentsRes.success && appointmentsRes.data ? appointmentsRes.data.total : 0,
         });
+
+        if (alertsRes.success && Array.isArray(alertsRes.data)) {
+          setCrisisAlerts(alertsRes.data as CrisisAlert[]);
+        }
       } catch (error) {
         console.error('Failed to load dashboard stats:', error);
       } finally {
@@ -124,6 +136,76 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {/* Crisis Alerts Panel */}
+      {crisisAlerts.length > 0 && (user?.role === 'admin' || user?.role === 'therapist') && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-800">
+              <ShieldAlert className="h-5 w-5" />
+              Active Crisis Alerts ({crisisAlerts.length})
+            </CardTitle>
+            <CardDescription className="text-red-600">
+              These patients may need immediate attention
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {crisisAlerts.map((alert) => (
+              <div key={alert.id} className="flex items-start justify-between gap-3 p-3 bg-white rounded-lg border border-red-200">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm">
+                      {alert.customer?.user?.name || 'Unknown Patient'}
+                    </span>
+                    <Badge
+                      variant="destructive"
+                      className={
+                        alert.severity === 'high'
+                          ? 'bg-red-600'
+                          : alert.severity === 'medium'
+                            ? 'bg-orange-500'
+                            : 'bg-yellow-500'
+                      }
+                    >
+                      {alert.severity}
+                    </Badge>
+                    <span className="text-xs text-slate-500">
+                      {new Date(alert.notifiedAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600">"{alert.triggerMessage}"</p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  {alert.customer && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/admin/customers/${alert.customerId}`)}
+                    >
+                      View Profile
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={async () => {
+                      const res = await miraApi.resolveAlert(alert.id);
+                      if (res.success) {
+                        toast.success('Alert resolved');
+                        setCrisisAlerts((prev) => prev.filter((a) => a.id !== alert.id));
+                      } else {
+                        toast.error('Failed to resolve alert');
+                      }
+                    }}
+                  >
+                    Resolve
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

@@ -37,4 +37,9 @@ export class CreateCustomerDto {
   @IsString({ each: true })
   @IsOptional()
   checkinCategories?: string[];
+
+  @ApiProperty({ example: '123456789', required: false })
+  @IsString()
+  @IsOptional()
+  telegramChatId?: string;
 }

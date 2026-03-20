@@ -20,5 +20,24 @@
   },
   "env": {
     "NODE_ENV": "development"
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE '^git commit' && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"DOCS CHECK: Did you update ARCHITECTURE.md, feature docs, or CLAUDE.md if this commit added new endpoints, models, modules, or integrations?\"}}' || true",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE 'prisma (migrate|db push)' && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"DOCS CHECK: Database schema changed. Update the Database Schema section in ARCHITECTURE.md to match.\"}}' || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
   }
 }

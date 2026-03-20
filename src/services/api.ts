@@ -19,6 +19,8 @@ import type {
   DailyCheckIn,
   CheckInAnswer,
   CheckInSummary,
+  MiraConversation,
+  CrisisAlert,
 } from '@/types/admin';
 
 const API_URL = config.apiUrl;
@@ -379,5 +381,27 @@ export const checkinsApi = {
     if (dateTo) params.set('dateTo', dateTo);
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest<CheckInSummary>(`/checkins/customer/${customerId}/summary${query}`);
+  },
+};
+
+// Mira AI Companion API
+export const miraApi = {
+  getConversations: async (customerId: string): Promise<ApiResponse<MiraConversation[]>> => {
+    return apiRequest<MiraConversation[]>(`/mira/conversations/${customerId}`);
+  },
+
+  getConversationSummary: async (conversationId: string): Promise<ApiResponse<MiraConversation>> => {
+    return apiRequest<MiraConversation>(`/mira/conversations/${conversationId}/summary`);
+  },
+
+  getCrisisAlerts: async (customerId?: string): Promise<ApiResponse<CrisisAlert[]>> => {
+    const query = customerId ? `?customerId=${customerId}` : '';
+    return apiRequest<CrisisAlert[]>(`/mira/crisis-alerts${query}`);
+  },
+
+  resolveAlert: async (alertId: string): Promise<ApiResponse<CrisisAlert>> => {
+    return apiRequest<CrisisAlert>(`/mira/crisis-alerts/${alertId}/resolve`, {
+      method: 'PATCH',
+    });
   },
 };
