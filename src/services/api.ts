@@ -13,6 +13,12 @@ import type {
   ApiResponse,
   PaginatedResponse,
   TimeSlot,
+  SessionNote,
+  CreateSessionNoteForm,
+  CheckInQuestion,
+  DailyCheckIn,
+  CheckInAnswer,
+  CheckInSummary,
 } from '@/types/admin';
 
 const API_URL = config.apiUrl;
@@ -246,5 +252,118 @@ export const timeSlotsApi = {
     return apiRequest<void>(`/time-slots/${id}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// Session Notes API
+export const sessionNotesApi = {
+  getAll: async (): Promise<ApiResponse<SessionNote[]>> => {
+    return apiRequest<SessionNote[]>('/session-notes');
+  },
+
+  getByCustomer: async (customerId: string): Promise<ApiResponse<SessionNote[]>> => {
+    return apiRequest<SessionNote[]>(`/session-notes/customer/${customerId}`);
+  },
+
+  getById: async (id: string): Promise<ApiResponse<SessionNote>> => {
+    return apiRequest<SessionNote>(`/session-notes/${id}`);
+  },
+
+  create: async (data: CreateSessionNoteForm): Promise<ApiResponse<SessionNote>> => {
+    return apiRequest<SessionNote>('/session-notes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<CreateSessionNoteForm>): Promise<ApiResponse<SessionNote>> => {
+    return apiRequest<SessionNote>(`/session-notes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: async (id: string): Promise<ApiResponse<void>> => {
+    return apiRequest<void>(`/session-notes/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Check-ins API
+export const checkinsApi = {
+  // Question Library
+  getQuestions: async (category?: string, tag?: string): Promise<ApiResponse<CheckInQuestion[]>> => {
+    const params = new URLSearchParams();
+    if (category) params.set('category', category);
+    if (tag) params.set('tag', tag);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest<CheckInQuestion[]>(`/checkins/questions${query}`);
+  },
+
+  getAllQuestions: async (): Promise<ApiResponse<CheckInQuestion[]>> => {
+    return apiRequest<CheckInQuestion[]>('/checkins/questions/all');
+  },
+
+  createQuestion: async (data: Partial<CheckInQuestion>): Promise<ApiResponse<CheckInQuestion>> => {
+    return apiRequest<CheckInQuestion>('/checkins/questions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateQuestion: async (id: string, data: Partial<CheckInQuestion>): Promise<ApiResponse<CheckInQuestion>> => {
+    return apiRequest<CheckInQuestion>(`/checkins/questions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteQuestion: async (id: string): Promise<ApiResponse<void>> => {
+    return apiRequest<void>(`/checkins/questions/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Daily Check-ins
+  startCheckIn: async (): Promise<ApiResponse<DailyCheckIn>> => {
+    return apiRequest<DailyCheckIn>('/checkins', {
+      method: 'POST',
+    });
+  },
+
+  submitResponses: async (checkInId: string, answers: CheckInAnswer[]): Promise<ApiResponse<DailyCheckIn>> => {
+    return apiRequest<DailyCheckIn>(`/checkins/${checkInId}/responses`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  },
+
+  getMyCheckIns: async (dateFrom?: string, dateTo?: string): Promise<ApiResponse<DailyCheckIn[]>> => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest<DailyCheckIn[]>(`/checkins/my${query}`);
+  },
+
+  getCustomerCheckIns: async (customerId: string, dateFrom?: string, dateTo?: string): Promise<ApiResponse<DailyCheckIn[]>> => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest<DailyCheckIn[]>(`/checkins/customer/${customerId}${query}`);
+  },
+
+  getCheckIn: async (id: string): Promise<ApiResponse<DailyCheckIn>> => {
+    return apiRequest<DailyCheckIn>(`/checkins/${id}`);
+  },
+
+  getCustomerSummary: async (customerId: string, dateFrom?: string, dateTo?: string): Promise<ApiResponse<CheckInSummary>> => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest<CheckInSummary>(`/checkins/customer/${customerId}/summary${query}`);
   },
 };

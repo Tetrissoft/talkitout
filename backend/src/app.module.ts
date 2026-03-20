@@ -9,6 +9,8 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { TimeSlotsModule } from './time-slots/time-slots.module';
 import { AiModule } from './ai/ai.module';
 import { AssessmentsModule } from './assessments/assessments.module';
+import { SessionNotesModule } from './session-notes/session-notes.module';
+import { CheckinsModule } from './checkins/checkins.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { AssessmentsModule } from './assessments/assessments.module';
     TimeSlotsModule,
     AiModule,
     AssessmentsModule,
+    SessionNotesModule,
+    CheckinsModule,
   ],
 })
 export class AppModule { }

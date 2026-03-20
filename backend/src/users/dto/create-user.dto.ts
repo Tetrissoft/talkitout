@@ -28,4 +28,9 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @ApiProperty({ example: '@johndoe', required: false })
+  @IsString()
+  @IsOptional()
+  telegramId?: string;
 }
