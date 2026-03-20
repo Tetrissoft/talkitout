@@ -91,6 +91,7 @@ export default function CustomerProfile() {
   const [editingInfo, setEditingInfo] = useState(false);
   const [infoForm, setInfoForm] = useState({
     telegramId: '',
+    telegramChatId: '',
     phone: '',
     address: '',
     emergencyContact: '',
@@ -227,6 +228,7 @@ export default function CustomerProfile() {
     if (!customer) return;
     setInfoForm({
       telegramId: customer.user.telegramId || '',
+      telegramChatId: customer.telegramChatId || '',
       phone: customer.user.phone || '',
       address: customer.address || '',
       emergencyContact: customer.emergencyContact || '',
@@ -252,12 +254,13 @@ export default function CustomerProfile() {
         }),
       });
 
-      // Update customer fields
+      // Update customer fields (including telegramChatId)
       const customerRes = await customersApi.update(customer.id, {
         address: infoForm.address,
         emergencyContact: infoForm.emergencyContact,
         notes: infoForm.notes,
         checkinCategories: infoForm.checkinCategories,
+        telegramChatId: infoForm.telegramChatId || null,
       } as any);
 
       if (customerRes.success) {
@@ -780,6 +783,11 @@ export default function CustomerProfile() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {checkIn.source === 'telegram' && (
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                              via Telegram
+                            </Badge>
+                          )}
                           {checkIn.filledBy && (
                             <Badge variant="outline" className="text-xs">
                               On behalf
@@ -849,8 +857,17 @@ export default function CustomerProfile() {
                     <Input
                       value={infoForm.telegramId}
                       onChange={(e) => setInfoForm({ ...infoForm, telegramId: e.target.value })}
-                      placeholder="@username or numeric ID"
+                      placeholder="@username"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Telegram Chat ID</label>
+                    <Input
+                      value={infoForm.telegramChatId}
+                      onChange={(e) => setInfoForm({ ...infoForm, telegramChatId: e.target.value })}
+                      placeholder="Numeric chat ID (for bot messages)"
+                    />
+                    <p className="text-xs text-slate-400">Required for automated Telegram check-ins</p>
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-medium text-slate-700">Address</label>
@@ -887,6 +904,10 @@ export default function CustomerProfile() {
                   <div>
                     <p className="text-xs text-slate-500">Telegram ID</p>
                     <p className="text-sm font-medium">{customer.user.telegramId || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Telegram Chat ID</p>
+                    <p className="text-sm font-medium">{customer.telegramChatId || '-'}</p>
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-xs text-slate-500">Address</p>

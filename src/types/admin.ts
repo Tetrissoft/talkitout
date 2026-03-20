@@ -48,6 +48,7 @@ export interface Customer {
   emergencyContact?: string;
   notes?: string;
   checkinCategories?: string[];
+  telegramChatId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -212,6 +213,8 @@ export interface DailyCheckIn {
   filledBy?: { id: string; name: string; role: string };
   date: string;
   completedAt?: string;
+  source?: 'web' | 'telegram' | 'on_behalf';
+  selectedQuestions?: string[];
   createdAt: string;
   updatedAt: string;
   responses: CheckInResponse[];
