@@ -359,6 +359,20 @@ export const checkinsApi = {
     return apiRequest<DailyCheckIn>(`/checkins/${id}`);
   },
 
+  // Fill check-in on behalf of patient
+  startCheckInForPatient: async (customerId: string): Promise<ApiResponse<{ checkIn: DailyCheckIn; questions: CheckInQuestion[] }>> => {
+    return apiRequest<{ checkIn: DailyCheckIn; questions: CheckInQuestion[] }>(`/checkins/customer/${customerId}/fill`, {
+      method: 'POST',
+    });
+  },
+
+  submitResponsesForPatient: async (customerId: string, checkInId: string, answers: CheckInAnswer[]): Promise<ApiResponse<DailyCheckIn>> => {
+    return apiRequest<DailyCheckIn>(`/checkins/customer/${customerId}/${checkInId}/responses`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  },
+
   getCustomerSummary: async (customerId: string, dateFrom?: string, dateTo?: string): Promise<ApiResponse<CheckInSummary>> => {
     const params = new URLSearchParams();
     if (dateFrom) params.set('dateFrom', dateFrom);

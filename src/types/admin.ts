@@ -47,6 +47,7 @@ export interface Customer {
   address?: string;
   emergencyContact?: string;
   notes?: string;
+  checkinCategories?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -207,6 +208,8 @@ export interface CheckInQuestion {
 export interface DailyCheckIn {
   id: string;
   customerId: string;
+  filledById?: string;
+  filledBy?: { id: string; name: string; role: string };
   date: string;
   completedAt?: string;
   createdAt: string;

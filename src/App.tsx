@@ -20,6 +20,8 @@ import Doctors from "./pages/admin/Doctors";
 import Customers from "./pages/admin/Customers";
 import Appointments from "./pages/admin/Appointments";
 import TimeSlots from "./pages/admin/TimeSlots";
+import CheckInQuestions from "./pages/admin/CheckInQuestions";
+import CustomerProfile from "./pages/admin/CustomerProfile";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +57,8 @@ const App = () => {
                   <Route path="customers" element={<Customers />} />
                   <Route path="appointments" element={<Appointments />} />
                   <Route path="time-slots" element={<TimeSlots />} />
+                  <Route path="checkin-questions" element={<CheckInQuestions />} />
+                  <Route path="customers/:customerId" element={<CustomerProfile />} />
                 </Route>
               </Route>
 
