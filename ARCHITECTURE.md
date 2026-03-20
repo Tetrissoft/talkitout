@@ -11,6 +11,7 @@ TalkItOut is a full-stack mental wellness platform offering free psychology cons
 | Frontend     | React 18, TypeScript, Vite, TailwindCSS, Radix UI |
 | Backend      | NestJS 10, Prisma 5, Passport JWT                |
 | Database     | PostgreSQL 16                                    |
+| AI           | Google Gemini 2.0 Flash (Mira AI companion)      |
 | Integrations | n8n (workflow automation), Telegram Bot API      |
 | Deployment   | Docker Compose, Nginx                            |
 
@@ -59,6 +60,7 @@ talkitout.com/
 │   │   ├── ai/                  # AI report generation service (mock)
 │   │   ├── checkins/            # Daily check-ins + Telegram bot API
 │   │   ├── session-notes/       # Per-appointment therapist notes
+│   │   ├── mira/                # Mira AI companion (Gemini function calling)
 │   │   ├── common/              # Shared guards (API key guard)
 │   │   ├── prisma/              # Prisma ORM client module
 │   │   ├── app.module.ts        # Root module
@@ -70,7 +72,8 @@ talkitout.com/
 ├── docs/
 │   └── features/                # Feature design documents
 │       ├── telegram-checkin-bot.md
-│       └── customer-profile.md
+│       ├── customer-profile.md
+│       └── mira-ai-companion.md
 │
 ├── .claude/
 │   ├── rules/                   # Claude behavior rules
@@ -141,6 +144,19 @@ talkitout.com/
 │  name, email, age    │       │  testType, answers   │
 └─────────────────────┘       │  report (AI Json)    │
                                └──────────────────────┘
+
+Customer──1:N──┐                         Customer──1:N──┐
+               │                                        │
+        ┌──────┴──────────┐                     ┌───────┴──────┐
+        │MiraConversation │──1:N──┐              │ CrisisAlert  │
+        │                 │       │              │              │
+        │ mode (enum)     │  ┌────┴────────┐    │ triggerMsg   │
+        │ summary         │  │ MiraMessage  │    │ severity     │
+        │ startedAt       │  │             │    │ notifiedAt   │
+        │ endedAt         │  │ role (enum) │    │ resolvedAt   │
+        └─────────────────┘  │ content     │    │ resolvedBy   │
+                              │ metadata    │    └──────────────┘
+                              └─────────────┘
 ```
 
 ### Enums
@@ -153,6 +169,9 @@ talkitout.com/
 | `CheckInQuestionType`    | `multiple_choice`, `scale`, `free_text`                             |
 | `CheckInQuestionCategory`| `mood`, `anxiety`, `sleep`, `energy`, `social`, `stress`, `mindfulness`, `general` |
 | `CheckInSource`          | `web`, `telegram`, `on_behalf`                                      |
+| `MiraMode`               | `checkin`, `free_chat`                                              |
+| `MiraMessageRole`        | `user`, `assistant`, `system`                                       |
+| `CrisisSeverity`         | `low`, `medium`, `high`                                             |
 
 ### User Roles
 
@@ -221,6 +240,56 @@ See [docs/features/telegram-checkin-bot.md](./docs/features/telegram-checkin-bot
 - **Questions**: Same selection logic as web (patient's assigned categories)
 - **Conversation**: One question at a time, empathetic acknowledgments, warm greeting/completion
 
+## Mira AI Companion
+
+Mira is a Gemini-powered conversational AI wellness companion that makes Telegram check-ins feel like natural human conversation. See [docs/features/mira-ai-companion.md](./docs/features/mira-ai-companion.md) for full design.
+
+### Architecture
+
+```
+┌──────────┐         ┌──────┐     POST /mira/message    ┌────────────┐
+│ Telegram │◄────────│  n8n │───────────────────────────►│ MiraService │
+│   User   │─reply──►│      │◄──────reply───────────────│            │
+└──────────┘         └──────┘                            │  ┌────────┤
+                                                         │  │ Gemini │
+                                                         │  │  API   │
+                                                         │  └──┬─────┤
+                                                         │     │     │
+                                                    ┌────┴─────┴──┐  │
+                                                    │  Function   │  │
+                                                    │  Calling    │  │
+                                                    │  Loop       │  │
+                                                    └──────┬──────┘  │
+                                                           │         │
+                                                    ┌──────┴──────┐  │
+                                                    │ Memory/DB   │  │
+                                                    │ Safety      │  │
+                                                    │ Prompt      │  │
+                                                    └─────────────┘  │
+                                                         └───────────┘
+```
+
+### Modes
+- **Check-in mode**: Mira asks daily check-in questions conversationally, extracts structured answers from natural responses, stores via `store_checkin_response` function call
+- **Free chat mode**: Supportive listener outside check-in hours, no data collection
+
+### Gemini Function Calling Tools
+| Tool                      | Purpose                                    |
+| ------------------------- | ------------------------------------------ |
+| `get_patient_info`        | Fetch patient context (name, therapist)    |
+| `get_checkin_questions`   | Get today's selected questions             |
+| `store_checkin_response`  | Save a structured answer                   |
+| `get_next_question`       | Get next unanswered question               |
+| `get_checkin_history`     | Fetch historical scores for trends         |
+| `mark_checkin_complete`   | Mark today's check-in as done              |
+| `trigger_crisis_alert`    | Create crisis alert for therapist           |
+| `save_conversation_note`  | Save therapist-relevant observation         |
+
+### Crisis Detection
+- **Fast path**: Keyword scan before Gemini call (immediate detection)
+- **Nuanced path**: Gemini classifies during conversation (contextual detection)
+- Alerts stored as `CrisisAlert` with severity levels, visible to therapists
+
 ## Customer Profile Page
 
 Unified patient profile at `/admin/customers/:customerId` with 3 tabs:
@@ -251,6 +320,8 @@ All endpoints are prefixed with `/api`. Swagger docs available at `/api/docs`.
 | Check-ins    | `POST /checkins`, `POST /checkins/:id/responses`, `GET /checkins/my`  |
 | Check-ins    | `GET /checkins/customer/:id`, `GET /checkins/customer/:id/summary`    |
 | Check-ins    | `POST /checkins/customer/:id/fill`, `POST /checkins/customer/:id/:checkInId/responses` |
+| Mira         | `GET /mira/conversations/:customerId`, `GET /mira/conversations/:id/summary`            |
+| Mira         | `GET /mira/crisis-alerts`, `PATCH /mira/crisis-alerts/:id/resolve`                      |
 
 ### API Key-Protected Endpoints (Telegram / n8n)
 
@@ -260,6 +331,7 @@ All endpoints are prefixed with `/api`. Swagger docs available at `/api/docs`.
 | `/checkins/telegram/start`           | POST   | Start or resume daily check-in       |
 | `/checkins/telegram/respond`         | POST   | Submit one answer, get next question  |
 | `/checkins/telegram/status/:chatId`  | GET    | Check pending check-in status         |
+| `/mira/message`                      | POST   | Send message to Mira AI companion     |
 
 ## Frontend Routes
 
