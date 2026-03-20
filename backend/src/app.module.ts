@@ -11,6 +11,7 @@ import { AiModule } from './ai/ai.module';
 import { AssessmentsModule } from './assessments/assessments.module';
 import { SessionNotesModule } from './session-notes/session-notes.module';
 import { CheckinsModule } from './checkins/checkins.module';
+import { MiraModule } from './mira/mira.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CheckinsModule } from './checkins/checkins.module';
     AssessmentsModule,
     SessionNotesModule,
     CheckinsModule,
+    MiraModule,
   ],
 })
 export class AppModule { }
