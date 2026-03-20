@@ -1,0 +1,42 @@
+# Deploy to Production (Mac server via SSH + Docker)
+# Triggers: push to main, or manual run
+
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DEPLOY_PATH: /usr/local/talkitout.com
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+            [ -f ~/.zprofile ] && source ~/.zprofile
+            [ -f ~/.zshrc ] && source ~/.zshrc
+
+            echo "→ Deploying to ${{ env.DEPLOY_PATH }}"
+            cd ${{ env.DEPLOY_PATH }}
+
+            echo "→ Pulling latest from main..."
+            git pull origin main
+
+            echo "→ Building and starting Docker containers..."
+            docker compose up -d --build
+
+            echo "→ Deploy complete at $(date)"
