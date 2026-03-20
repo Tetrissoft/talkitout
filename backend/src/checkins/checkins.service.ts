@@ -451,4 +451,365 @@ export class CheckinsService {
       categoryTrends: categoryAverages,
     };
   }
+
+  // ─── Telegram Check-in Flow ───
+
+  private readonly acknowledgments: Record<string, string[]> = {
+    mood: ['Thanks for sharing how you feel! 💛', 'Got it, appreciate you being open! 💙'],
+    anxiety: ['Thanks for letting me know 🙏', 'Noted, thanks for being honest about that 💛'],
+    sleep: ['Sleep matters so much — thanks for tracking it! 🌙', 'Got it! 😴'],
+    energy: ['Thanks for sharing your energy level! ⚡', 'Noted! 💪'],
+    social: ['Social connections matter — thanks for sharing! 💛', 'Got it, thanks! 🤝'],
+    stress: ['Thanks for being open about your stress 🙏', 'Noted, take care of yourself 💛'],
+    mindfulness: ['Love that you are thinking about mindfulness! 🧘', 'Great awareness! ✨'],
+    general: ['Thanks for sharing! 💛', 'Got it! 😊'],
+  };
+
+  private getAcknowledgment(category: string): string {
+    const msgs = this.acknowledgments[category] || this.acknowledgments.general;
+    return msgs[Math.floor(Math.random() * msgs.length)];
+  }
+
+  private getGreeting(name: string): string {
+    const greetings = [
+      `Hey ${name}, how are you doing today? Let's do a quick check-in 😊`,
+      `Hi ${name}! Time for your daily check-in 💙`,
+      `Hey ${name}! Ready for a quick check-in? It only takes a minute 😊`,
+      `Hi ${name}, let's see how you are doing today 🌟`,
+    ];
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  }
+
+  private getCompletionMessage(name: string): string {
+    const messages = [
+      `All done! Thanks for checking in today, ${name}. Take care 💙`,
+      `That's it for today! Thanks for sharing, ${name} 🌟`,
+      `Check-in complete! Have a wonderful rest of your day, ${name} 💛`,
+      `Done! Remember, ${name}, every check-in helps your journey. Take care 💙`,
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  }
+
+  async telegramStart(telegramChatId: string) {
+    // Find customer by telegram chat ID
+    const customer = await this.prisma.customer.findUnique({
+      where: { telegramChatId },
+      include: { user: { select: { name: true } } },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('No patient found with this Telegram Chat ID');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check for existing check-in today
+    let checkIn = await this.prisma.dailyCheckIn.findUnique({
+      where: {
+        customerId_date: {
+          customerId: customer.id,
+          date: today,
+        },
+      },
+      include: {
+        responses: { include: { question: true } },
+      },
+    });
+
+    let selectedQuestionIds: string[];
+
+    if (checkIn) {
+      // Resume existing check-in
+      if (checkIn.completedAt) {
+        return {
+          success: true,
+          data: {
+            checkInId: checkIn.id,
+            completed: true,
+            greeting: `Hey ${customer.user.name}, you have already completed your check-in for today! 😊`,
+            question: null,
+            questionNumber: null,
+            totalQuestions: 0,
+          },
+        };
+      }
+
+      // Get stored selected questions
+      selectedQuestionIds = (checkIn.selectedQuestions as string[]) || [];
+
+      if (selectedQuestionIds.length === 0) {
+        // Legacy check-in without stored questions — select new ones
+        const questions = await this.getQuestionsForPatient(customer.id);
+        selectedQuestionIds = questions.map((q) => q.id);
+        await this.prisma.dailyCheckIn.update({
+          where: { id: checkIn.id },
+          data: { selectedQuestions: selectedQuestionIds },
+        });
+      }
+    } else {
+      // Create new check-in
+      const questions = await this.getQuestionsForPatient(customer.id);
+      selectedQuestionIds = questions.map((q) => q.id);
+
+      checkIn = await this.prisma.dailyCheckIn.create({
+        data: {
+          customerId: customer.id,
+          date: today,
+          source: 'telegram',
+          selectedQuestions: selectedQuestionIds,
+        },
+        include: {
+          responses: { include: { question: true } },
+        },
+      });
+    }
+
+    // Find the first unanswered question
+    const answeredQuestionIds = checkIn.responses.map((r) => r.questionId);
+    const unansweredIds = selectedQuestionIds.filter(
+      (id) => !answeredQuestionIds.includes(id),
+    );
+
+    if (unansweredIds.length === 0) {
+      // All answered but not marked complete — mark it now
+      await this.prisma.dailyCheckIn.update({
+        where: { id: checkIn.id },
+        data: { completedAt: new Date() },
+      });
+
+      return {
+        success: true,
+        data: {
+          checkInId: checkIn.id,
+          completed: true,
+          greeting: this.getCompletionMessage(customer.user.name),
+          question: null,
+          questionNumber: selectedQuestionIds.length,
+          totalQuestions: selectedQuestionIds.length,
+        },
+      };
+    }
+
+    // Get the next question
+    const nextQuestion = await this.prisma.checkInQuestion.findUnique({
+      where: { id: unansweredIds[0] },
+    });
+
+    const questionNumber = answeredQuestionIds.length + 1;
+    const isResuming = answeredQuestionIds.length > 0;
+
+    return {
+      success: true,
+      data: {
+        checkInId: checkIn.id,
+        completed: false,
+        greeting: isResuming
+          ? `Welcome back, ${customer.user.name}! Let's continue where you left off 😊`
+          : this.getGreeting(customer.user.name),
+        question: nextQuestion
+          ? {
+              id: nextQuestion.id,
+              text: nextQuestion.text,
+              type: nextQuestion.type,
+              category: nextQuestion.category,
+              options: nextQuestion.options,
+              scaleMin: nextQuestion.scaleMin,
+              scaleMax: nextQuestion.scaleMax,
+              scaleMinLabel: nextQuestion.scaleMinLabel,
+              scaleMaxLabel: nextQuestion.scaleMaxLabel,
+            }
+          : null,
+        questionNumber,
+        totalQuestions: selectedQuestionIds.length,
+      },
+    };
+  }
+
+  async telegramRespond(
+    checkInId: string,
+    questionId: string,
+    telegramChatId: string,
+    answer: { answerScale?: number; answerChoice?: string; answerText?: string },
+  ) {
+    // Verify customer owns this check-in
+    const customer = await this.prisma.customer.findUnique({
+      where: { telegramChatId },
+      include: { user: { select: { name: true } } },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('No patient found with this Telegram Chat ID');
+    }
+
+    const checkIn = await this.prisma.dailyCheckIn.findUnique({
+      where: { id: checkInId },
+      include: { responses: true },
+    });
+
+    if (!checkIn) {
+      throw new NotFoundException('Check-in not found');
+    }
+
+    if (checkIn.customerId !== customer.id) {
+      throw new BadRequestException('This check-in does not belong to you');
+    }
+
+    if (checkIn.completedAt) {
+      throw new BadRequestException('This check-in is already completed');
+    }
+
+    // Get the question for acknowledgment category
+    const question = await this.prisma.checkInQuestion.findUnique({
+      where: { id: questionId },
+    });
+
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+
+    // Upsert the response
+    await this.prisma.checkInResponse.upsert({
+      where: {
+        checkInId_questionId: {
+          checkInId,
+          questionId,
+        },
+      },
+      create: {
+        checkInId,
+        questionId,
+        answerText: answer.answerText,
+        answerScale: answer.answerScale,
+        answerChoice: answer.answerChoice,
+      },
+      update: {
+        answerText: answer.answerText,
+        answerScale: answer.answerScale,
+        answerChoice: answer.answerChoice,
+      },
+    });
+
+    // Find next unanswered question
+    const selectedQuestionIds = (checkIn.selectedQuestions as string[]) || [];
+    const updatedResponses = await this.prisma.checkInResponse.findMany({
+      where: { checkInId },
+    });
+    const answeredQuestionIds = updatedResponses.map((r) => r.questionId);
+    const unansweredIds = selectedQuestionIds.filter(
+      (id) => !answeredQuestionIds.includes(id),
+    );
+
+    const acknowledgment = this.getAcknowledgment(question.category);
+
+    if (unansweredIds.length === 0) {
+      // All questions answered — mark complete
+      await this.prisma.dailyCheckIn.update({
+        where: { id: checkInId },
+        data: { completedAt: new Date() },
+      });
+
+      return {
+        success: true,
+        data: {
+          acknowledged: acknowledgment,
+          nextQuestion: null,
+          questionNumber: selectedQuestionIds.length,
+          totalQuestions: selectedQuestionIds.length,
+          completed: true,
+          completionMessage: this.getCompletionMessage(customer.user.name),
+        },
+      };
+    }
+
+    // Get next question
+    const nextQuestion = await this.prisma.checkInQuestion.findUnique({
+      where: { id: unansweredIds[0] },
+    });
+
+    return {
+      success: true,
+      data: {
+        acknowledged: acknowledgment,
+        nextQuestion: nextQuestion
+          ? {
+              id: nextQuestion.id,
+              text: nextQuestion.text,
+              type: nextQuestion.type,
+              category: nextQuestion.category,
+              options: nextQuestion.options,
+              scaleMin: nextQuestion.scaleMin,
+              scaleMax: nextQuestion.scaleMax,
+              scaleMinLabel: nextQuestion.scaleMinLabel,
+              scaleMaxLabel: nextQuestion.scaleMaxLabel,
+            }
+          : null,
+        questionNumber: answeredQuestionIds.length + 1,
+        totalQuestions: selectedQuestionIds.length,
+        completed: false,
+        completionMessage: null,
+      },
+    };
+  }
+
+  async telegramStatus(telegramChatId: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { telegramChatId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('No patient found with this Telegram Chat ID');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const checkIn = await this.prisma.dailyCheckIn.findUnique({
+      where: {
+        customerId_date: {
+          customerId: customer.id,
+          date: today,
+        },
+      },
+      include: { responses: true },
+    });
+
+    if (!checkIn) {
+      return { success: true, data: { hasPendingCheckIn: false, completed: false } };
+    }
+
+    const selectedQuestionIds = (checkIn.selectedQuestions as string[]) || [];
+
+    return {
+      success: true,
+      data: {
+        hasPendingCheckIn: !checkIn.completedAt,
+        completed: !!checkIn.completedAt,
+        checkInId: checkIn.id,
+        answeredCount: checkIn.responses.length,
+        totalQuestions: selectedQuestionIds.length,
+      },
+    };
+  }
+
+  async getAllPatientsWithTelegram() {
+    const customers = await this.prisma.customer.findMany({
+      where: {
+        telegramChatId: { not: null },
+        user: { isActive: true },
+      },
+      include: {
+        user: { select: { name: true, isActive: true } },
+      },
+    });
+
+    return {
+      success: true,
+      data: customers.map((c) => ({
+        customerId: c.id,
+        telegramChatId: c.telegramChatId,
+        name: c.user.name,
+      })),
+    };
+  }
 }

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { CheckinsService } from './checkins.service';
 import { CheckinsController } from './checkins.controller';
+import { TelegramCheckinsController } from './telegram-checkin.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [CheckinsController],
+  controllers: [CheckinsController, TelegramCheckinsController],
   providers: [CheckinsService],
   exports: [CheckinsService],
 })

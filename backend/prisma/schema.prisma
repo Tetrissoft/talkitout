@@ -53,8 +53,9 @@ model Customer {
   address          String?
   emergencyContact String?        @map("emergency_contact")
   notes            String?
-  checkinCategories Json?         @map("checkin_categories")
-  createdAt        DateTime       @default(now())
+  checkinCategories  Json?         @map("checkin_categories")
+  telegramChatId     String?       @unique @map("telegram_chat_id")
+  createdAt          DateTime      @default(now())
   updatedAt        DateTime       @updatedAt
   appointments     Appointment[]
   assignedIntern   Doctor?        @relation("CustomerIntern", fields: [assignedInternId], references: [id])
@@ -140,16 +141,18 @@ model CheckInQuestion {
 }
 
 model DailyCheckIn {
-  id          String            @id @default(uuid())
-  customerId  String            @map("customer_id")
-  filledById  String?           @map("filled_by_id")
-  date        DateTime          @db.Date
-  completedAt DateTime?         @map("completed_at")
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  customer    Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  filledBy    User?             @relation(fields: [filledById], references: [id])
-  responses   CheckInResponse[]
+  id                String            @id @default(uuid())
+  customerId        String            @map("customer_id")
+  filledById        String?           @map("filled_by_id")
+  date              DateTime          @db.Date
+  completedAt       DateTime?         @map("completed_at")
+  selectedQuestions Json?             @map("selected_questions") // Array of question IDs selected for this check-in
+  source            CheckInSource     @default(web)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  filledBy          User?             @relation(fields: [filledById], references: [id])
+  responses         CheckInResponse[]
 
   @@unique([customerId, date])
   @@map("daily_checkins")
@@ -195,6 +198,12 @@ enum CheckInQuestionType {
   multiple_choice
   scale
   free_text
+}
+
+enum CheckInSource {
+  web
+  telegram
+  on_behalf
 }
 
 enum CheckInQuestionCategory {
