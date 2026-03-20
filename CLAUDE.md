@@ -3,12 +3,14 @@
 ## Project Overview
 
 TalkItOut is a full-stack mental wellness platform with a React frontend and NestJS backend.
+It includes appointment scheduling, AI assessments, daily check-ins (web + Telegram via n8n), session notes, and a unified patient profile.
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed system design.
 
 ## Tech Stack
 
 - **Frontend:** React 18 + TypeScript + Vite + TailwindCSS + Radix UI
 - **Backend:** NestJS 10 + Prisma 5 + PostgreSQL 16 + Passport JWT
+- **Integrations:** n8n (workflow automation) + Telegram Bot API (daily check-ins)
 - **Deployment:** Docker Compose with Nginx
 
 ## Build & Run Commands
@@ -95,7 +97,7 @@ docker-compose up -d --build   # Start all services
 <type>(<scope>): <subject>
 ```
 - **Types:** `feat`, `fix`, `refactor`, `style`, `docs`, `test`, `chore`, `perf`, `ci`
-- **Scopes:** `ui`, `auth`, `api`, `users`, `doctors`, `customers`, `appointments`, `assessments`, `prisma`, `docker`, `deps`
+- **Scopes:** `ui`, `auth`, `api`, `users`, `doctors`, `customers`, `appointments`, `assessments`, `checkins`, `session-notes`, `telegram`, `prisma`, `docker`, `deps`, `docs`
 - Use imperative mood: "add" not "added"
 - Stage specific files only — NEVER `git add .` or `git add -A`
 - NEVER commit to `main` or `develop` directly
@@ -185,6 +187,38 @@ Present this document to the user and **wait for explicit approval** before writ
 - Break large features into small, independently deployable tasks
 - **Think like a product person** who understands mental health platforms — therapist workflows, patient privacy, clinical documentation norms, and calming UX
 
+## Documentation Strategy (MUST FOLLOW)
+
+Documentation is a first-class deliverable. Claude MUST keep docs in sync with code.
+
+### Documentation Structure
+```
+docs/features/             # Feature design documents (one per feature)
+ARCHITECTURE.md            # System architecture, schema, flows, API table
+CLAUDE.md                  # Dev workflow, coding standards, conventions
+.claude/rules/             # Claude behavior rules (per-domain)
+```
+
+### When to Update Documentation (Auto-Detection)
+Claude MUST proactively update docs when:
+1. **New API endpoints added** → Update ARCHITECTURE.md API Structure table
+2. **New database model/field** → Update ARCHITECTURE.md Database Schema diagram
+3. **New backend module created** → Update ARCHITECTURE.md Project Structure
+4. **Feature completed** → Update `docs/features/<feature>.md` status to "Completed"
+5. **New integration added** → Add integration flow to ARCHITECTURE.md
+6. **Feature design approved** → Save feature doc to `docs/features/` before coding
+
+### Feature Design Documents
+- Created during Phase 2 of Feature Development Workflow
+- Saved to `docs/features/<feature-name>.md`
+- Include: Status, Problem Statement, User Stories, User Flow, Technical Design, API Contracts, Tasks
+- Update status as work progresses: `Draft` → `Approved` → `In Progress` → `Completed`
+
+### Action: After completing a feature, tell the user:
+> "Documentation updated: [list of files updated and what changed]"
+
+See `.claude/rules/documentation.md` for full documentation rules.
+
 ## File Structure Reference
 
 - Frontend pages: `src/pages/`
@@ -193,5 +227,7 @@ Present this document to the user and **wait for explicit approval** before writ
 - Frontend types: `src/types/admin.ts`
 - Backend modules: `backend/src/<module>/`
 - Database schema: `backend/prisma/schema.prisma`
+- Feature docs: `docs/features/`
+- Claude rules: `.claude/rules/`
 
 @ARCHITECTURE.md
