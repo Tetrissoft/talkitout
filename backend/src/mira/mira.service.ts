@@ -35,7 +35,7 @@ export class MiraService {
     this.genAI = new GoogleGenerativeAI(apiKey || 'mock-key');
     this.modelName = this.config.get<string>(
       'GEMINI_MODEL',
-      'gemini-2.0-flash',
+      'gemini-2.5-flash',
     );
   }
 
@@ -257,18 +257,24 @@ export class MiraService {
           checkInId: result.checkInId,
           questions: result.questions,
           totalQuestions: result.questions.length,
+          important: 'Use the exact question id (UUID) from this list when calling store_checkin_response. Do NOT fabricate question IDs.',
         };
       }
 
       case 'store_checkin_response': {
-        const storeResult = await this.memory.storeCheckinResponse(
-          patient.customerId,
-          args.questionId as string,
-          args.answerScale as number | undefined,
-          args.answerChoice as string | undefined,
-          args.answerText as string | undefined,
-        );
-        return storeResult;
+        try {
+          const storeResult = await this.memory.storeCheckinResponse(
+            patient.customerId,
+            args.questionId as string,
+            args.answerScale as number | undefined,
+            args.answerChoice as string | undefined,
+            args.answerText as string | undefined,
+          );
+          return storeResult;
+        } catch (error) {
+          this.logger.warn(`store_checkin_response failed for questionId=${args.questionId}: ${error}`);
+          return { success: false, error: `Invalid questionId "${args.questionId}". Use the exact UUID from get_checkin_questions.` };
+        }
       }
 
       case 'get_next_question': {

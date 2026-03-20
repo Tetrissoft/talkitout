@@ -14,6 +14,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { MiraService } from './mira.service';
 import { MiraSafetyService } from './mira-safety.service';
@@ -59,7 +60,7 @@ export class MiraController {
   /**
    * Get conversation history for a patient — for therapist/admin dashboard.
    */
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'therapist', 'intern')
   @Get('conversations/:customerId')
   async getConversations(@Param('customerId') customerId: string) {
@@ -71,7 +72,7 @@ export class MiraController {
   /**
    * Get a specific conversation with summary.
    */
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'therapist', 'intern')
   @Get('conversations/:id/summary')
   async getConversationSummary(@Param('id') id: string) {
@@ -82,7 +83,7 @@ export class MiraController {
   /**
    * Get active crisis alerts — for admin/therapist dashboard.
    */
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'therapist')
   @Get('crisis-alerts')
   async getCrisisAlerts(@Query('customerId') customerId?: string) {
@@ -93,7 +94,7 @@ export class MiraController {
   /**
    * Resolve a crisis alert.
    */
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'therapist')
   @Patch('crisis-alerts/:id/resolve')
   async resolveAlert(
