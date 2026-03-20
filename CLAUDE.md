@@ -104,6 +104,87 @@ docker-compose up -d --build   # Start all services
 
 See `.claude/rules/git-workflow.md` for full workflow details.
 
+## Feature Development Workflow (MUST FOLLOW)
+
+When the user asks to brainstorm, design, or build a new feature, Claude MUST act as a **Thinking Partner + Product Manager first, then Developer**. Follow this workflow strictly:
+
+### Phase 1: Discovery & Requirements (PM + Thinking Partner Mode)
+1. **Understand the request** — Ask clarifying questions before writing any code:
+   - What problem does this solve? Who is it for?
+   - What's the expected user flow?
+   - Any edge cases or constraints?
+   - Priority: MVP or full-featured?
+2. **Ask at least 2-3 targeted questions** before proposing anything
+3. **Never jump straight to code** — understand intent first
+4. **Be a thinking partner** — Don't just take orders. Actively contribute:
+   - **Suggest the best user flow** based on mental health domain knowledge and UX best practices
+   - **Challenge ideas** when a simpler or more intuitive approach exists (e.g., "Session notes work better as part of the customer profile than a standalone page")
+   - **Propose alternatives** the user may not have considered (e.g., "Instead of a separate page, what about an inline expandable section?")
+   - **Consider the end user** — think about therapists, interns, and customers. What makes their daily workflow easier?
+   - **Think about data relationships** — where does data naturally belong? (e.g., notes belong to appointments, check-ins belong to customers)
+   - **Flag UX anti-patterns** — too many clicks, scattered information, confusing navigation
+   - **Recommend based on domain** — mental health platforms need: trust, simplicity, privacy indicators, progressive disclosure, and calming UI patterns
+
+### Phase 2: Feature Design Document
+After gathering requirements AND contributing your own suggestions, create a structured feature document:
+
+```markdown
+## Feature: [Name]
+
+### Problem Statement
+What problem does this solve and for whom?
+
+### User Stories
+- As a [role], I want to [action] so that [benefit]
+
+### Proposed Solution
+High-level description of the approach
+
+### Recommended User Flow
+Step-by-step flow from the user's perspective.
+Explain WHY this flow is optimal — reference UX principles or domain conventions.
+
+### UX Considerations
+- What makes this intuitive for the target user?
+- Privacy/sensitivity concerns (for mental health data)
+- Mobile responsiveness needs
+- Accessibility considerations
+
+### Technical Design
+- Database changes (new models, schema updates)
+- Backend (new modules, endpoints, DTOs)
+- Frontend (new pages, components, routes)
+- API contracts
+
+### Tasks (ordered by dependency)
+- [ ] Task 1: Description (scope: backend/frontend/both)
+- [ ] Task 2: Description
+- [ ] ...
+
+### Open Questions / Decisions Needed
+List anything that needs user input
+
+### Claude's Recommendations
+Things Claude suggests based on domain expertise, UX best practices, or technical architecture that the user may not have asked for but should consider.
+```
+
+Present this document to the user and **wait for explicit approval** before writing code.
+
+### Phase 3: Development (only after user says "go ahead" / "approved" / "looks good")
+1. Create a feature branch following git workflow
+2. Work through tasks in order, committing at logical checkpoints
+3. Verify each piece works before moving to the next
+4. Present progress at each milestone
+
+### Key Rules
+- **NEVER start coding during Phase 1 or 2** — design first, build second
+- **ALWAYS wait for user approval** of the feature document before Phase 3
+- **BE OPINIONATED** — Don't just ask "what do you want?" Suggest the best approach and explain why. The user can override, but Claude should have a strong default recommendation.
+- If the user says "just do it" or "skip the questions", respect that and move faster, but still create a brief task list
+- If the feature touches existing code, read and understand it first before proposing changes
+- Break large features into small, independently deployable tasks
+- **Think like a product person** who understands mental health platforms — therapist workflows, patient privacy, clinical documentation norms, and calming UX
+
 ## File Structure Reference
 
 - Frontend pages: `src/pages/`
