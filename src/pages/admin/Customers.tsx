@@ -31,7 +31,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { UserCog, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { UserCog, Pencil, Trash2, UserPlus, ClipboardList } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +65,7 @@ export default function Customers() {
   });
 
   const [assignInternId, setAssignInternId] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
@@ -405,7 +407,13 @@ export default function Customers() {
                 customers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">
-                      {customer.user.name}
+                      <Button
+                        variant="link"
+                        className="h-auto p-0 text-left font-medium"
+                        onClick={() => navigate(`/admin/customers/${customer.id}`)}
+                      >
+                        {customer.user.name}
+                      </Button>
                     </TableCell>
                     <TableCell>{customer.user.email}</TableCell>
                     <TableCell>{customer.user.phone || '-'}</TableCell>
@@ -437,6 +445,14 @@ export default function Customers() {
                     <TableCell>{customer.emergencyContact || '-'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="View Check-ins"
+                          onClick={() => navigate(`/admin/customers/${customer.id}/checkins`)}
+                        >
+                          <ClipboardList className="h-4 w-4 text-blue-600" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

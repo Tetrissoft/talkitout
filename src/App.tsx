@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import BookAppointment from "./pages/BookAppointment";
 import BookIntern from "./pages/BookIntern";
 import Login from "./pages/Login";
+import AssessmentPlugin from "./pages/AssessmentPlugin";
 
 import Dashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
@@ -19,6 +20,8 @@ import Doctors from "./pages/admin/Doctors";
 import Customers from "./pages/admin/Customers";
 import Appointments from "./pages/admin/Appointments";
 import TimeSlots from "./pages/admin/TimeSlots";
+import CheckInQuestions from "./pages/admin/CheckInQuestions";
+import CustomerProfile from "./pages/admin/CustomerProfile";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +42,9 @@ const App = () => {
               <Route path="/book-appointment" element={<BookAppointment />} />
               <Route path="/book-intern" element={<BookIntern />} />
 
+              {/* Embeddable Assessment Plugin Route */}
+              <Route path="/plugin/assessment/:testId" element={<AssessmentPlugin />} />
+
               {/* Admin Routes */}
               <Route path="/admin/login" element={<Login />} />
 
@@ -51,6 +57,8 @@ const App = () => {
                   <Route path="customers" element={<Customers />} />
                   <Route path="appointments" element={<Appointments />} />
                   <Route path="time-slots" element={<TimeSlots />} />
+                  <Route path="checkin-questions" element={<CheckInQuestions />} />
+                  <Route path="customers/:customerId" element={<CustomerProfile />} />
                 </Route>
               </Route>
 

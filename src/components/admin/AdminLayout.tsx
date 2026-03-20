@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   X,
+  ClipboardList,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -58,6 +59,12 @@ const navItems: NavItem[] = [
     href: '/admin/time-slots',
     icon: Clock,
     roles: ['admin', 'therapist', 'intern'],
+  },
+  {
+    title: 'Check-in Questions',
+    href: '/admin/checkin-questions',
+    icon: ClipboardList,
+    roles: ['admin'],
   },
 ];
 

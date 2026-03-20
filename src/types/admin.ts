@@ -14,6 +14,7 @@ export interface User {
   name: string;
   role: UserRole;
   phone?: string;
+  telegramId?: string;
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
@@ -46,6 +47,7 @@ export interface Customer {
   address?: string;
   emergencyContact?: string;
   notes?: string;
+  checkinCategories?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +109,7 @@ export interface CreateUserForm {
   name: string;
   role: UserRole;
   phone?: string;
+  telegramId?: string;
 }
 
 export interface CreateDoctorForm {
@@ -148,4 +151,92 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+// ─── Session Notes ───
+
+export interface SessionNote {
+  id: string;
+  appointmentId: string;
+  doctorId: string;
+  customerId: string;
+  content: string;
+  isPrivate: boolean;
+  createdAt: string;
+  updatedAt: string;
+  doctor?: Doctor;
+  customer?: Customer;
+  appointment?: Appointment;
+}
+
+export interface CreateSessionNoteForm {
+  appointmentId: string;
+  customerId: string;
+  content: string;
+  isPrivate?: boolean;
+}
+
+// ─── Daily Check-ins ───
+
+export type CheckInQuestionCategory =
+  | 'mood'
+  | 'anxiety'
+  | 'sleep'
+  | 'energy'
+  | 'social'
+  | 'stress'
+  | 'mindfulness'
+  | 'general';
+
+export type CheckInQuestionType = 'multiple_choice' | 'scale' | 'free_text';
+
+export interface CheckInQuestion {
+  id: string;
+  text: string;
+  type: CheckInQuestionType;
+  category: CheckInQuestionCategory;
+  tags: string[];
+  options?: string[];
+  scaleMin?: number;
+  scaleMax?: number;
+  scaleMinLabel?: string;
+  scaleMaxLabel?: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface DailyCheckIn {
+  id: string;
+  customerId: string;
+  filledById?: string;
+  filledBy?: { id: string; name: string; role: string };
+  date: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  responses: CheckInResponse[];
+  customer?: Customer;
+}
+
+export interface CheckInResponse {
+  id: string;
+  checkInId: string;
+  questionId: string;
+  question?: CheckInQuestion;
+  answerText?: string;
+  answerScale?: number;
+  answerChoice?: string;
+}
+
+export interface CheckInAnswer {
+  questionId: string;
+  answerText?: string;
+  answerScale?: number;
+  answerChoice?: string;
+}
+
+export interface CheckInSummary {
+  customerId: string;
+  totalCheckIns: number;
+  categoryTrends: Record<string, { date: string; average: number }[]>;
 }
