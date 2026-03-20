@@ -1,125 +1,111 @@
-# TalkItOut - Free Psychology Consultation
+# TalkItOut
 
-Welcome to **TalkItOut**, a platform where users can request free psychology consultations from qualified professionals.
+A free psychology consultation platform connecting people with therapists and interns for mental wellness support. Features appointment scheduling, role-based admin portal, and AI-powered psychological assessments.
 
-## About TalkItOut
+## Features
 
-TalkItOut is dedicated to making mental health support accessible to everyone. Our platform connects individuals seeking psychological guidance with experienced professionals who offer free consultations.
+- **Appointment Booking** — Schedule sessions with therapists and interns
+- **Admin Portal** — Manage users, doctors, customers, appointments, and time slots
+- **Role-Based Access** — Admin, therapist, intern, and customer roles with granular permissions
+- **Psychological Assessments** — Interactive chat-based questionnaires with AI-generated wellness reports
+- **Intern Supervision** — Assign interns to therapists for supervised practice
+- **Responsive UI** — Modern interface with TailwindCSS and Radix UI components
 
-### Our Mission
+## Tech Stack
 
-Mental health matters, and everyone deserves access to professional psychological support. TalkItOut breaks down barriers by providing:
-
-- **Free consultations** with licensed psychology professionals
-- **Easy booking** through our integrated scheduling system
-- **Confidential and supportive** environment for your mental wellness journey
-- **Accessible care** for anyone who needs someone to talk to
-
-## Project Structure
-
-This is a modern React application built with best practices for maintainability and scalability.
-
-### Technologies Used
-
-- **Vite** - Fast build tool and dev server
-- **TypeScript** - Type-safe development
-- **React** - Component-based UI framework
-- **Tailwind CSS** - Utility-first styling
-- **shadcn-ui** - Beautiful, accessible component library
-- **GSAP** - Smooth animations and transitions
-- **Framer Motion** - React animation library
-- **Calendly Integration** - Seamless appointment booking
-
-### Architecture Principles
-
-This project follows modular design principles:
-
-✅ One component per file  
-✅ Functional components only  
-✅ Small, focused components (Single Responsibility Principle)  
-✅ Reusable custom hooks for shared logic  
-✅ Co-located styles with components  
-✅ TypeScript for type safety  
-✅ Clean code with ESLint and Prettier  
+- **Frontend:** React 18, TypeScript, Vite, TailwindCSS, Radix UI
+- **Backend:** NestJS 10, Prisma ORM, Passport JWT
+- **Database:** PostgreSQL 16
+- **Deployment:** Docker Compose with Nginx
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v16 or higher) - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-- npm or yarn
+- Node.js 18+
+- PostgreSQL 16 (or Docker)
+- npm
 
-### Installation
+### Option 1: Docker (Recommended)
 
-```sh
-# Step 1: Clone the repository
-git clone <YOUR_GIT_URL>
+```bash
+# Clone and configure
+cp .env.example .env
 
-# Step 2: Navigate to the project directory
-cd talkitout.com
+# Start all services
+docker-compose up -d --build
+```
 
-# Step 3: Install dependencies
+- Frontend: http://localhost:3060
+- Backend API: http://localhost:3061/api
+- Swagger Docs: http://localhost:3061/api/docs
+
+### Option 2: Local Development
+
+**1. Database**
+
+Start a PostgreSQL instance and set `DATABASE_URL` in `backend/.env`:
+
+```
+DATABASE_URL="postgresql://user:password@localhost:5432/talkitout"
+```
+
+**2. Backend**
+
+```bash
+cd backend
 npm install
-
-# Step 4: Start the development server
-npm run dev
+npm run prisma:migrate    # Run database migrations
+npm run prisma:seed       # Seed demo data (optional)
+npm run start:dev         # Start on port 3001
 ```
 
-The application will be available at `http://localhost:5173`
+**3. Frontend**
 
-## Available Scripts
-
-```sh
-# Development server with hot reload
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run tests
-npm run test
-
-# Lint code
-npm run lint
-
-# Format code
-npm run format
+```bash
+npm install
+npm run dev               # Start on port 3030
 ```
 
-## Project Structure
+## Environment Variables
 
-```
-src/
-├── components/        # React components
-│   ├── ui/           # Reusable UI components (shadcn-ui)
-│   └── ...           # Feature-specific components
-├── hooks/            # Custom React hooks
-├── lib/              # Utilities and constants
-├── pages/            # Page components
-├── assets/           # Images and static files
-└── main.tsx          # Application entry point
-```
+| Variable       | Description              | Default                          |
+| -------------- | ------------------------ | -------------------------------- |
+| `DATABASE_URL` | PostgreSQL connection    | `postgresql://...`               |
+| `JWT_SECRET`   | JWT signing secret       | —                                |
+| `PORT`         | Backend port             | `3001`                           |
+| `VITE_API_URL` | Backend API URL          | `http://localhost:3001`          |
 
-## Deployment
+## Scripts
 
-The project can be deployed to any static hosting service:
+### Frontend
 
-- Vercel
-- Netlify
-- GitHub Pages
-- AWS S3 + CloudFront
+| Command          | Description              |
+| ---------------- | ------------------------ |
+| `npm run dev`    | Start dev server         |
+| `npm run build`  | Production build         |
+| `npm run lint`   | Run ESLint               |
 
-## Contributing
+### Backend
 
-We welcome contributions! Please follow the coding standards defined in the project's ESLint and Prettier configuration.
+| Command                    | Description                |
+| -------------------------- | -------------------------- |
+| `npm run start:dev`        | Dev server with hot reload |
+| `npm run build`            | Compile to dist/           |
+| `npm run start:prod`       | Run production build       |
+| `npm run prisma:migrate`   | Run database migrations    |
+| `npm run prisma:studio`    | Open Prisma Studio GUI     |
+| `npm run prisma:seed`      | Seed demo data             |
+| `npm test`                 | Run tests                  |
+
+## API Documentation
+
+Swagger/OpenAPI docs are available at `/api/docs` when the backend is running. All endpoints are prefixed with `/api`.
+
+## Architecture
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed project structure, database schema, and system design.
 
 ## License
 
-© 2026 TalkItOut. All rights reserved.
-
----
-
-**Need help? Ready to talk?** Book your free consultation today.
+All rights reserved. &copy; 2026 TalkItOut.

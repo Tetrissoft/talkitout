@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "bash": [
+      "allow npm run *",
+      "allow npm install *",
+      "allow npm test *",
+      "allow npx prisma *",
+      "allow git status",
+      "allow git diff *",
+      "allow git log *",
+      "allow git add *",
+      "allow git commit *",
+      "allow git branch *",
+      "allow git checkout *",
+      "allow docker-compose *",
+      "allow ls *",
+      "allow mkdir *",
+      "allow cat *"
+    ]
+  },
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
