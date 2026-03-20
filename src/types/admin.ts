@@ -243,3 +243,39 @@ export interface CheckInSummary {
   totalCheckIns: number;
   categoryTrends: Record<string, { date: string; average: number }[]>;
 }
+
+// ─── Mira AI Companion ───
+
+export type MiraMode = 'checkin' | 'free_chat';
+export type MiraMessageRole = 'user' | 'assistant' | 'system';
+export type CrisisSeverity = 'low' | 'medium' | 'high';
+
+export interface MiraMessage {
+  id: string;
+  role: MiraMessageRole;
+  content: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface MiraConversation {
+  id: string;
+  customerId: string;
+  mode: MiraMode;
+  summary?: string;
+  startedAt: string;
+  endedAt?: string;
+  messages: MiraMessage[];
+}
+
+export interface CrisisAlert {
+  id: string;
+  customerId: string;
+  conversationId?: string;
+  triggerMessage: string;
+  severity: CrisisSeverity;
+  notifiedAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  customer?: Customer;
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { customersApi, appointmentsApi, sessionNotesApi, checkinsApi } from '@/services/api';
+import { customersApi, appointmentsApi, sessionNotesApi, checkinsApi, miraApi } from '@/services/api';
 import type {
   Customer,
   Appointment,
@@ -10,6 +10,8 @@ import type {
   CheckInQuestion,
   CheckInAnswer,
   CreateSessionNoteForm,
+  MiraConversation,
+  CrisisAlert,
 } from '@/types/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -45,6 +47,10 @@ import {
   AlertCircle,
   Save,
   Info,
+  Bot,
+  ShieldAlert,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -108,6 +114,11 @@ export default function CustomerProfile() {
   const [fillAnswers, setFillAnswers] = useState<Record<string, CheckInAnswer>>({});
   const [fillLoading, setFillLoading] = useState(false);
 
+  // Mira conversations state
+  const [miraConversations, setMiraConversations] = useState<MiraConversation[]>([]);
+  const [crisisAlerts, setCrisisAlerts] = useState<CrisisAlert[]>([]);
+  const [expandedConversation, setExpandedConversation] = useState<string | null>(null);
+
   useEffect(() => {
     if (customerId) loadData();
   }, [customerId]);
@@ -115,12 +126,14 @@ export default function CustomerProfile() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [customerRes, appointmentsRes, notesRes, checkInsRes, summaryRes] = await Promise.all([
+      const [customerRes, appointmentsRes, notesRes, checkInsRes, summaryRes, miraRes, alertsRes] = await Promise.all([
         customersApi.getById(customerId!),
         appointmentsApi.getAll(),
         sessionNotesApi.getByCustomer(customerId!),
         checkinsApi.getCustomerCheckIns(customerId!),
         checkinsApi.getCustomerSummary(customerId!),
+        miraApi.getConversations(customerId!),
+        miraApi.getCrisisAlerts(customerId!),
       ]);
 
       if (customerRes.success && customerRes.data) {
@@ -154,6 +167,9 @@ export default function CustomerProfile() {
       } else if ((summaryRes as any).totalCheckIns !== undefined) {
         setSummary(summaryRes as unknown as CheckInSummary);
       }
+
+      setMiraConversations(extractArray(miraRes));
+      setCrisisAlerts(extractArray(alertsRes));
     } catch (error) {
       toast.error('Failed to load customer data');
     } finally {
@@ -494,6 +510,15 @@ export default function CustomerProfile() {
             <CheckCircle2 className="h-4 w-4" />
             Daily Check-ins ({checkIns.length})
           </TabsTrigger>
+          <TabsTrigger value="mira" className="gap-2">
+            <Bot className="h-4 w-4" />
+            Mira ({miraConversations.length})
+            {crisisAlerts.length > 0 && (
+              <span className="ml-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                {crisisAlerts.length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="info" className="gap-2">
             <Info className="h-4 w-4" />
             Info
@@ -815,6 +840,158 @@ export default function CustomerProfile() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ─── Mira Conversations Tab ─── */}
+        <TabsContent value="mira" className="space-y-4">
+          {/* Crisis Alerts */}
+          {crisisAlerts.length > 0 && (
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2 text-red-800">
+                  <ShieldAlert className="h-4 w-4" />
+                  Active Crisis Alerts ({crisisAlerts.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {crisisAlerts.map((alert) => (
+                  <div key={alert.id} className="border border-red-200 rounded-lg p-3 bg-white">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge
+                            variant="destructive"
+                            className={
+                              alert.severity === 'high'
+                                ? 'bg-red-600'
+                                : alert.severity === 'medium'
+                                  ? 'bg-orange-500'
+                                  : 'bg-yellow-500'
+                            }
+                          >
+                            {alert.severity}
+                          </Badge>
+                          <span className="text-xs text-slate-500">
+                            {new Date(alert.notifiedAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-700">"{alert.triggerMessage}"</p>
+                      </div>
+                      {!alert.resolvedAt && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            const res = await miraApi.resolveAlert(alert.id);
+                            if (res.success) {
+                              toast.success('Alert resolved');
+                              loadData();
+                            } else {
+                              toast.error('Failed to resolve alert');
+                            }
+                          }}
+                        >
+                          Resolve
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Conversations */}
+          {miraConversations.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Bot className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500">No Mira conversations yet</p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Conversations will appear here when this patient chats with Mira via Telegram
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            miraConversations.map((conv) => (
+              <Card key={conv.id}>
+                <CardHeader
+                  className="pb-3 cursor-pointer hover:bg-slate-50 transition-colors"
+                  onClick={() =>
+                    setExpandedConversation(
+                      expandedConversation === conv.id ? null : conv.id
+                    )
+                  }
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CardTitle className="text-base">
+                        {new Date(conv.startedAt).toLocaleDateString('en-IN', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </CardTitle>
+                      <Badge
+                        variant="outline"
+                        className={
+                          conv.mode === 'checkin'
+                            ? 'border-blue-200 text-blue-700 bg-blue-50'
+                            : 'border-purple-200 text-purple-700 bg-purple-50'
+                        }
+                      >
+                        {conv.mode === 'checkin' ? 'Check-in' : 'Free Chat'}
+                      </Badge>
+                      <span className="text-xs text-slate-400">
+                        {conv.messages?.length || 0} messages
+                      </span>
+                    </div>
+                    {expandedConversation === conv.id ? (
+                      <ChevronUp className="h-4 w-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-slate-400" />
+                    )}
+                  </div>
+                </CardHeader>
+                {expandedConversation === conv.id && (
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {(conv.messages || [])
+                        .filter((m) => m.role !== 'system')
+                        .map((msg) => (
+                          <div
+                            key={msg.id}
+                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                                msg.role === 'user'
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-100 text-slate-800'
+                              }`}
+                            >
+                              <p className="whitespace-pre-wrap">{msg.content}</p>
+                              <p
+                                className={`text-xs mt-1 ${
+                                  msg.role === 'user' ? 'text-blue-200' : 'text-slate-400'
+                                }`}
+                              >
+                                {new Date(msg.createdAt).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            ))
+          )}
         </TabsContent>
 
         {/* ─── Info Tab ─── */}
