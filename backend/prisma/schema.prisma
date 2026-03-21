@@ -64,6 +64,7 @@ model Customer {
   dailyCheckIns    DailyCheckIn[]
   miraConversations MiraConversation[]
   crisisAlerts      CrisisAlert[]
+  telegramLink      TelegramLink?
 
   @@map("customers")
 }
@@ -302,4 +303,17 @@ model AssessmentSubmission {
   participant    AssessmentParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
 
   @@map("assessment_submissions")
+}
+
+// ─── Telegram Deep Link ───
+
+model TelegramLink {
+  id          String   @id @default(uuid())
+  customerId  String   @unique @map("customer_id")
+  token       String   @unique
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now())
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_links")
 }
