@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { customersApi, usersApi, doctorsApi } from '@/services/api';
-import type { Customer, User, Doctor, CreateCustomerForm } from '@/types/admin';
+import { customersApi, doctorsApi } from '@/services/api';
+import type { Customer, Doctor } from '@/types/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -46,7 +46,6 @@ import {
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [interns, setInterns] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -55,8 +54,11 @@ export default function Customers() {
   const [deleteCustomer, setDeleteCustomer] = useState<Customer | null>(null);
   const [assigningCustomer, setAssigningCustomer] = useState<Customer | null>(null);
 
-  const [formData, setFormData] = useState<CreateCustomerForm>({
-    userId: '',
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
     assignedInternId: '',
     dateOfBirth: '',
     address: '',
@@ -74,17 +76,13 @@ export default function Customers() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [customersRes, usersRes, doctorsRes] = await Promise.all([
+      const [customersRes, doctorsRes] = await Promise.all([
         customersApi.getAll(),
-        usersApi.getAll(),
         doctorsApi.getAll(),
       ]);
 
       if (customersRes.success && customersRes.data) {
         setCustomers(customersRes.data.items);
-      }
-      if (usersRes.success && usersRes.data) {
-        setUsers(usersRes.data.items);
       }
       if (doctorsRes.success && doctorsRes.data) {
         const internsList = doctorsRes.data.items.filter((d) => d.type === 'intern');
@@ -97,41 +95,23 @@ export default function Customers() {
     }
   };
 
-  const availableUsers = users.filter(
-    (user) =>
-      user.role === 'customer' &&
-      !customers.some((cust) => cust.userId === user.id)
-  );
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const submitData: Record<string, any> = {
-        userId: formData.userId,
-      };
-
-      // Only include optional fields if they have actual values
-      const internId = formData.assignedInternId;
-      if (internId && internId !== 'none') {
-        submitData.assignedInternId = internId;
-      }
-      if (formData.dateOfBirth) {
-        submitData.dateOfBirth = formData.dateOfBirth;
-      }
-      if (formData.address) {
-        submitData.address = formData.address;
-      }
-      if (formData.emergencyContact) {
-        submitData.emergencyContact = formData.emergencyContact;
-      }
-      if (formData.notes) {
-        submitData.notes = formData.notes;
-      }
-
       if (editingCustomer) {
+        const updateData: Record<string, any> = {};
+        const internId = formData.assignedInternId;
+        if (internId && internId !== 'none') {
+          updateData.assignedInternId = internId;
+        }
+        if (formData.dateOfBirth) updateData.dateOfBirth = formData.dateOfBirth;
+        if (formData.address) updateData.address = formData.address;
+        if (formData.emergencyContact) updateData.emergencyContact = formData.emergencyContact;
+        if (formData.notes) updateData.notes = formData.notes;
+
         const response = await customersApi.update(editingCustomer.id, {
-          ...submitData,
+          ...updateData,
           id: editingCustomer.id,
         });
 
@@ -144,7 +124,21 @@ export default function Customers() {
           toast.error(response.error || 'Failed to update patient');
         }
       } else {
-        const response = await customersApi.create(submitData as CreateCustomerForm);
+        // Create new patient (User + Customer in one step)
+        const createData: Record<string, any> = {
+          name: formData.name,
+          email: formData.email,
+        };
+        if (formData.password) createData.password = formData.password;
+        if (formData.phone) createData.phone = formData.phone;
+        const internId = formData.assignedInternId;
+        if (internId && internId !== 'none') createData.assignedInternId = internId;
+        if (formData.dateOfBirth) createData.dateOfBirth = formData.dateOfBirth;
+        if (formData.address) createData.address = formData.address;
+        if (formData.emergencyContact) createData.emergencyContact = formData.emergencyContact;
+        if (formData.notes) createData.notes = formData.notes;
+
+        const response = await customersApi.createPatient(createData as any);
         if (response.success) {
           toast.success('Patient created successfully');
           loadData();
@@ -184,7 +178,10 @@ export default function Customers() {
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setFormData({
-      userId: customer.userId,
+      name: customer.user.name,
+      email: customer.user.email,
+      password: '',
+      phone: customer.user.phone || '',
       assignedInternId: customer.assignedInternId || '',
       dateOfBirth: customer.dateOfBirth || '',
       address: customer.address || '',
@@ -212,7 +209,10 @@ export default function Customers() {
 
   const resetForm = () => {
     setFormData({
-      userId: '',
+      name: '',
+      email: '',
+      password: '',
+      phone: '',
       assignedInternId: '',
       dateOfBirth: '',
       address: '',
@@ -267,28 +267,55 @@ export default function Customers() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="userId">User</Label>
-                <Select
-                  value={formData.userId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, userId: value })
-                  }
-                  required
-                  disabled={!!editingCustomer}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableUsers.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name} ({user.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!editingCustomer && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Patient's full name"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="patient@example.com"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        placeholder="Auto-generated if empty"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="+1234567890"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="assignedInternId">Assigned Intern</Label>
