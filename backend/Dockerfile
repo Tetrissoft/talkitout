@@ -67,12 +67,12 @@ COPY --from=builder /app/dist ./dist
 COPY docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
 
-# Expose port
-EXPOSE 3001
+# Expose port (matches PORT env var in docker-compose)
+EXPOSE 3061
 
-# Healthcheck
+# Healthcheck (uses PORT env var, defaults to 3061)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3061}/api || exit 1
 
 # Start the application
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

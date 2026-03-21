@@ -4,9 +4,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: talkitout
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-talkitout}
     ports:
       - "3062:5432"
     volumes:
@@ -26,14 +26,15 @@ services:
     ports:
       - "3061:3061"
     environment:
-      DATABASE_URL: "postgresql://postgres:password@db:5432/talkitout?schema=public"
-      JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
-      JWT_EXPIRATION: "7d"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-talkitout}?schema=public"
+      JWT_SECRET: "${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}"
+      JWT_EXPIRATION: "${JWT_EXPIRATION:-7d}"
       PORT: "3061"
       NODE_ENV: production
       CORS_ORIGIN: "*"
       GEMINI_API_KEY: "${GEMINI_API_KEY}"
-      GEMINI_MODEL: "gemini-2.5-flash"
+      GEMINI_MODEL: "${GEMINI_MODEL:-gemini-2.5-flash}"
+      TELEGRAM_API_KEY: "${TELEGRAM_API_KEY:-talkitout-telegram-secret}"
     depends_on:
       db:
         condition: service_healthy
