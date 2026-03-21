@@ -1,8 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
+import { SetupAdminDto } from './dto/setup-admin.dto';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -53,8 +55,60 @@ export class AuthService {
     };
   }
 
-  async signup(createUserDto: any) {
-    const result = await this.usersService.create(createUserDto);
+  async signup(createUserDto: CreateUserDto) {
+    // Security: Public signup only allows customer role
+    if (createUserDto.role && createUserDto.role !== 'customer') {
+      throw new ForbiddenException('Public signup is only available for customer accounts');
+    }
+
+    const result = await this.usersService.create({
+      ...createUserDto,
+      role: 'customer',
+    });
+    const user = result.data;
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    return {
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        token: this.jwtService.sign(payload),
+      },
+    };
+  }
+
+  async getSetupStatus() {
+    const count = await this.usersService.countUsers();
+    return {
+      success: true,
+      data: {
+        setupRequired: count === 0,
+      },
+    };
+  }
+
+  async setupAdmin(setupAdminDto: SetupAdminDto) {
+    const count = await this.usersService.countUsers();
+
+    if (count > 0) {
+      throw new ForbiddenException('Setup has already been completed. An admin account already exists.');
+    }
+
+    const result = await this.usersService.create({
+      name: setupAdminDto.name,
+      email: setupAdminDto.email,
+      password: setupAdminDto.password,
+      phone: setupAdminDto.phone,
+      role: 'admin' as any,
+    });
     const user = result.data;
 
     const payload = {
