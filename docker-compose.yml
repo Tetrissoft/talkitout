@@ -32,6 +32,8 @@ services:
       PORT: "3061"
       NODE_ENV: production
       CORS_ORIGIN: "*"
+      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+      GEMINI_MODEL: "gemini-2.5-flash"
     depends_on:
       db:
         condition: service_healthy
@@ -42,7 +44,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:3061/api
+        VITE_API_URL: /api
     restart: unless-stopped
     ports:
       - "3060:80"
