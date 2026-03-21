@@ -195,6 +195,7 @@ export const customersApi = {
     });
   },
 
+
   update: async (id: string, data: Partial<Customer>): Promise<ApiResponse<Customer>> => {
     return apiRequest<Customer>(`/customers/${id}`, {
       method: 'PATCH',

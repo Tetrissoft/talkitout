@@ -67,6 +67,25 @@ export class CustomersService {
   }
 
   async findAll(user: any) {
+    // Auto-create Customer records for any user with role=customer who doesn't have one
+    const orphanedCustomerUsers = await this.prisma.user.findMany({
+      where: {
+        role: UserRole.customer,
+        customer: null,
+      },
+    });
+
+    if (orphanedCustomerUsers.length > 0) {
+      const ALL_CATEGORIES = ['mood', 'anxiety', 'sleep', 'energy', 'social', 'stress', 'mindfulness', 'general'];
+      await Promise.all(
+        orphanedCustomerUsers.map((u) =>
+          this.prisma.customer.create({
+            data: { userId: u.id, checkinCategories: ALL_CATEGORIES },
+          }),
+        ),
+      );
+    }
+
     let whereClause: any = {};
 
     if (user.role !== UserRole.admin) {

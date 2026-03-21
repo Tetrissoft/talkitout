@@ -33,6 +33,7 @@ export class CustomersController {
     return this.customersService.create(createCustomerDto);
   }
 
+
   @Get()
   @Roles(UserRole.admin, UserRole.therapist, UserRole.intern)
   @ApiOperation({ summary: 'Get all customers' })
