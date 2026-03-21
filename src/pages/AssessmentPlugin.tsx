@@ -4,6 +4,7 @@ import { AssessmentChat, ChatMessage } from '@/components/assessments/Assessment
 import { AssessmentReport, AssessmentResult } from '@/components/assessments/AssessmentReport';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
+import { config } from '@/lib/config';
 
 const mockQuestions = [
     { id: 'q1', text: "Welcome to the Anxiety Assessment. What is your full name?", type: 'text' },
@@ -88,7 +89,7 @@ export default function AssessmentPlugin() {
         ]);
 
         try {
-            const response = await fetch('http://localhost:3001/api/assessments/submit', {
+            const response = await fetch(`${config.apiUrl}/assessments/submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

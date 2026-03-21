@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { customersApi, appointmentsApi, sessionNotesApi, checkinsApi, miraApi } from '@/services/api';
+import { config } from '@/lib/config';
 import type {
   Customer,
   Appointment,
@@ -258,7 +259,7 @@ export default function CustomerProfile() {
     if (!customer) return;
     try {
       // Update user fields (telegramId, phone)
-      const userUpdateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/users/${customer.userId}`, {
+      const userUpdateRes = await fetch(`${config.apiUrl}/users/${customer.userId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
