@@ -175,7 +175,9 @@ export class MiraService {
       if (!candidate) break;
 
       const functionCalls: FunctionCall[] = [];
-      for (const part of candidate.content.parts) {
+      const parts = candidate.content?.parts;
+      if (!parts) break;
+      for (const part of parts) {
         if (part.functionCall) {
           functionCalls.push(part.functionCall);
         }
@@ -212,7 +214,7 @@ export class MiraService {
       }
 
       // Add function call and response to contents
-      contents.push(candidate.content);
+      if (candidate.content) contents.push(candidate.content);
       contents.push(...functionResponses);
 
       // Call Gemini again with function results
