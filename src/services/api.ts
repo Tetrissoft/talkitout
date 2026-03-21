@@ -90,6 +90,19 @@ export const authApi = {
       body: JSON.stringify(data),
     });
   },
+
+  getSetupStatus: async (): Promise<ApiResponse<{ setupRequired: boolean }>> => {
+    return apiRequest<{ setupRequired: boolean }>('/auth/setup-status', {
+      method: 'GET',
+    });
+  },
+
+  setupAdmin: async (data: { name: string; email: string; password: string; phone?: string }): Promise<ApiResponse<AuthUser>> => {
+    return apiRequest<AuthUser>('/auth/setup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // Users API

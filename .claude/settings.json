@@ -22,6 +22,18 @@
     "NODE_ENV": "development"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE '^git commit' && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"⚠️ DOCUMENTATION CHECK: Before committing, verify if any of these need updating:\\n- ARCHITECTURE.md (new endpoints, models, or modules?)\\n- docs/features/ (feature doc status change?)\\n- CLAUDE.md (new scopes, conventions, or workflow changes?)\\nUpdate docs FIRST, then include them in this commit.\"}}' || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Bash",

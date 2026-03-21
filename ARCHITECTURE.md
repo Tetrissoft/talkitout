@@ -196,6 +196,22 @@ Customer──1:N──┐                         Customer──1:N──┐
 6. `@Public()` decorator bypasses auth for open endpoints
 7. Telegram API endpoints use API key auth (`x-api-key` header) instead of JWT
 
+### First-Time Admin Setup
+
+When the database is empty (no users), the login page detects this via `GET /auth/setup-status` and shows a one-time "Setup Admin Account" form instead of login/signup tabs.
+
+1. Frontend calls `GET /api/auth/setup-status` → returns `{ setupRequired: true }`
+2. Login page renders admin setup form (name, email, phone, password)
+3. User submits → `POST /api/auth/setup` creates admin user, returns JWT
+4. Setup endpoint refuses to work once any user exists (403 Forbidden)
+5. Public signup endpoint is hardened: only `customer` role allowed
+
+### Security Notes
+
+- Public signup (`POST /auth/signup`) is restricted to `customer` role only
+- Admin/therapist/intern accounts can only be created by an admin via `POST /users`
+- First admin is created via `POST /auth/setup` (one-time, empty DB only)
+
 ## Assessment Flow
 
 1. User navigates to `/plugin/assessment/:testId`
@@ -308,7 +324,7 @@ All endpoints are prefixed with `/api`. Swagger docs available at `/api/docs`.
 
 | Module       | Key Endpoints                                                          |
 | ------------ | ---------------------------------------------------------------------- |
-| Auth         | `POST /auth/login`, `POST /auth/signup`, `GET /auth/validate`         |
+| Auth         | `POST /auth/login`, `POST /auth/signup`, `GET /auth/validate`, `GET /auth/setup-status`, `POST /auth/setup` |
 | Users        | `GET/POST/PATCH/DELETE /users`                                        |
 | Doctors      | `GET/POST/PATCH/DELETE /doctors`, `POST /doctors/assign-intern`       |
 | Customers    | `GET/POST/PATCH/DELETE /customers`, `POST /customers/assign-intern`   |

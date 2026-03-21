@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Phone, User, Mail, Lock } from 'lucide-react';
+import { AlertCircle, Phone, User, Mail, Lock, Shield, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -17,6 +17,19 @@ export default function Login() {
     const [searchParams, setSearchParams] = useSearchParams();
     const defaultTab = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
     const [activeTab, setActiveTab] = useState(defaultTab);
+
+    // Setup state
+    const [isCheckingSetup, setIsCheckingSetup] = useState(true);
+    const [isSetupMode, setIsSetupMode] = useState(false);
+    const [setupData, setSetupData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        confirmPassword: '',
+    });
+    const [setupError, setSetupError] = useState('');
+    const [isSetupLoading, setIsSetupLoading] = useState(false);
 
     // Login State
     const [loginEmail, setLoginEmail] = useState('');
@@ -37,9 +50,24 @@ export default function Login() {
 
     const { login } = useAuth();
     const navigate = useNavigate();
-    // Modify default redirect to be smarter later if needed, but for now "/" is safe for general users
-    // Admin logic might need a check
     const redirect = searchParams.get('redirect') || '/';
+
+    // Check if first-time setup is needed
+    useEffect(() => {
+        const checkSetup = async () => {
+            try {
+                const response = await authApi.getSetupStatus();
+                if (response.success && response.data?.setupRequired) {
+                    setIsSetupMode(true);
+                }
+            } catch {
+                // If check fails, show normal login
+            } finally {
+                setIsCheckingSetup(false);
+            }
+        };
+        checkSetup();
+    }, []);
 
     useEffect(() => {
         setActiveTab(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
@@ -53,6 +81,44 @@ export default function Login() {
         });
     };
 
+    const handleSetup = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSetupError('');
+
+        if (setupData.password !== setupData.confirmPassword) {
+            setSetupError('Passwords do not match');
+            return;
+        }
+
+        if (setupData.password.length < 6) {
+            setSetupError('Password must be at least 6 characters');
+            return;
+        }
+
+        setIsSetupLoading(true);
+
+        try {
+            const response = await authApi.setupAdmin({
+                name: setupData.name,
+                email: setupData.email,
+                phone: setupData.phone || undefined,
+                password: setupData.password,
+            });
+
+            if (response.success && response.data) {
+                localStorage.setItem('auth_token', response.data.token);
+                toast.success('Admin account created! Welcome to TalkItOut.');
+                window.location.href = '/admin/dashboard';
+            } else {
+                setSetupError(response.error || 'Failed to create admin account');
+            }
+        } catch {
+            setSetupError('An error occurred. Please try again.');
+        } finally {
+            setIsSetupLoading(false);
+        }
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoginError('');
@@ -60,14 +126,6 @@ export default function Login() {
 
         try {
             await login({ email: loginEmail, password: loginPassword });
-            // If successful, navigate. 
-            // TODO: Check if user is admin and redirect to dashboard? 
-            // For now, let's assume the user knows where they are going or default to home/dashboard based on role if possible.
-            // But we don't have role easily accessible here without decoding or modifying login return.
-            // Let's stick to existing logic: if they came from a protected route, 'redirect' handles it.
-            // If they came from "Login" button, redirect is '/'. 
-            // If they are admin, they might want dashboard. 
-            // I'll leave it as `navigate(redirect)` but maybe default to `/admin/dashboard` if email suggests admin? No, that's flaky.
             navigate(redirect === '/' ? '/admin/dashboard' : redirect);
         } catch (err) {
             setLoginError('Invalid credentials. Please try again.');
@@ -99,11 +157,6 @@ export default function Login() {
             if (response.success && response.data) {
                 localStorage.setItem('auth_token', response.data.token);
                 toast.success('Account created successfully!');
-                // Force a page reload or update auth context if needed, but navigate usually suffices if App checks token on mount
-                // However, useAuth might need to be notified. 
-                // Ideally login() should be used.
-                // Let's manually reload or call a "refresh" if available.
-                // Or just navigate and let the app handle token presence.
                 window.location.href = redirect;
             } else {
                 setSignupError(response.error || 'Failed to create account');
@@ -115,6 +168,158 @@ export default function Login() {
         }
     };
 
+    // Loading state while checking setup status
+    if (isCheckingSetup) {
+        return (
+            <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow flex items-center justify-center bg-secondary/30 p-4 pt-24 pb-12">
+                    <Card className="w-full max-w-md shadow-xl bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 min-h-[300px] flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </Card>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
+    // First-time admin setup mode
+    if (isSetupMode) {
+        return (
+            <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow flex items-center justify-center bg-secondary/30 p-4 pt-24 pb-12">
+                    <Card className="w-full max-w-md shadow-xl bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 min-h-[600px] transition-all duration-300">
+                        <CardHeader className="space-y-3 text-center">
+                            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Shield className="h-6 w-6 text-primary" />
+                            </div>
+                            <CardTitle className="text-2xl font-heading font-light tracking-wide">
+                                Welcome to TalkItOut
+                            </CardTitle>
+                            <CardDescription className="font-body text-muted-foreground">
+                                Set up your admin account to get started
+                            </CardDescription>
+                            <p className="text-xs text-muted-foreground/60">
+                                This one-time setup creates the first administrator account
+                            </p>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleSetup} className="space-y-4">
+                                {setupError && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertDescription>{setupError}</AlertDescription>
+                                    </Alert>
+                                )}
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="setup-name">Full Name</Label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="setup-name"
+                                            placeholder="Your full name"
+                                            className="pl-10"
+                                            value={setupData.name}
+                                            onChange={(e) => setSetupData({ ...setupData, name: e.target.value })}
+                                            required
+                                            disabled={isSetupLoading}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="setup-email">Email</Label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="setup-email"
+                                            type="email"
+                                            placeholder="admin@yourcompany.com"
+                                            className="pl-10"
+                                            value={setupData.email}
+                                            onChange={(e) => setSetupData({ ...setupData, email: e.target.value })}
+                                            required
+                                            disabled={isSetupLoading}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="setup-phone">Phone Number <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="setup-phone"
+                                            type="tel"
+                                            placeholder="+91 9876543210"
+                                            className="pl-10"
+                                            value={setupData.phone}
+                                            onChange={(e) => setSetupData({ ...setupData, phone: e.target.value })}
+                                            disabled={isSetupLoading}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="setup-password">Password</Label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="setup-password"
+                                            type="password"
+                                            placeholder="Create a strong password"
+                                            className="pl-10"
+                                            value={setupData.password}
+                                            onChange={(e) => setSetupData({ ...setupData, password: e.target.value })}
+                                            required
+                                            minLength={6}
+                                            disabled={isSetupLoading}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="setup-confirm">Confirm Password</Label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="setup-confirm"
+                                            type="password"
+                                            placeholder="Confirm your password"
+                                            className="pl-10"
+                                            value={setupData.confirmPassword}
+                                            onChange={(e) => setSetupData({ ...setupData, confirmPassword: e.target.value })}
+                                            required
+                                            disabled={isSetupLoading}
+                                        />
+                                    </div>
+                                </div>
+
+                                <Button type="submit" className="w-full btn-elegant" disabled={isSetupLoading}>
+                                    {isSetupLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Creating Admin Account...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Shield className="mr-2 h-4 w-4" />
+                                            Create Admin Account
+                                        </>
+                                    )}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
+    // Normal login/signup flow
     return (
         <div className="flex flex-col min-h-screen">
             <Header />
