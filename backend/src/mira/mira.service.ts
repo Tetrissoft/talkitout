@@ -273,7 +273,7 @@ export class MiraService {
           return storeResult;
         } catch (error) {
           this.logger.warn(`store_checkin_response failed for questionId=${args.questionId}: ${error}`);
-          return { success: false, error: `Invalid questionId "${args.questionId}". Use the exact UUID from get_checkin_questions.` };
+          return { success: false, error: `Invalid questionId "${args.questionId}". This is NOT a valid UUID. Call get_next_question to get the correct question UUID, then retry store_checkin_response with that UUID.` };
         }
       }
 
