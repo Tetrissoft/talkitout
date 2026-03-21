@@ -2,15 +2,22 @@ import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/c
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { SetupAdminDto } from './dto/setup-admin.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+
+const ALL_CHECKIN_CATEGORIES = [
+  'mood', 'anxiety', 'sleep', 'energy',
+  'social', 'stress', 'mindfulness', 'general',
+];
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private prisma: PrismaService,
   ) { }
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -66,6 +73,14 @@ export class AuthService {
       role: 'customer',
     });
     const user = result.data;
+
+    // Auto-create Customer profile with all check-in categories
+    await this.prisma.customer.create({
+      data: {
+        userId: user.id,
+        checkinCategories: ALL_CHECKIN_CATEGORIES,
+      },
+    });
 
     const payload = {
       sub: user.id,
