@@ -195,12 +195,6 @@ export const customersApi = {
     });
   },
 
-  createPatient: async (data: { name: string; email: string; password?: string; phone?: string; assignedInternId?: string; dateOfBirth?: string; address?: string; emergencyContact?: string; notes?: string }): Promise<ApiResponse<Customer>> => {
-    return apiRequest<Customer>('/customers/create-patient', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
 
   update: async (id: string, data: Partial<Customer>): Promise<ApiResponse<Customer>> => {
     return apiRequest<Customer>(`/customers/${id}`, {

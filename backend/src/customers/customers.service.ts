@@ -1,12 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
-import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { AssignInternDto } from './dto/assign-intern.dto';
 import { DoctorType, UserRole } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class CustomersService {
@@ -68,66 +66,26 @@ export class CustomersService {
     return { success: true, data: customer };
   }
 
-  async createPatient(dto: CreatePatientDto) {
-    // Check if email already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+  async findAll(user: any) {
+    // Auto-create Customer records for any user with role=customer who doesn't have one
+    const orphanedCustomerUsers = await this.prisma.user.findMany({
+      where: {
+        role: UserRole.customer,
+        customer: null,
+      },
     });
-    if (existingUser) {
-      throw new BadRequestException('A user with this email already exists');
+
+    if (orphanedCustomerUsers.length > 0) {
+      const ALL_CATEGORIES = ['mood', 'anxiety', 'sleep', 'energy', 'social', 'stress', 'mindfulness', 'general'];
+      await Promise.all(
+        orphanedCustomerUsers.map((u) =>
+          this.prisma.customer.create({
+            data: { userId: u.id, checkinCategories: ALL_CATEGORIES },
+          }),
+        ),
+      );
     }
 
-    // Generate a default password if not provided
-    const rawPassword = dto.password || randomUUID().slice(0, 12);
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-    const ALL_CATEGORIES = ['mood', 'anxiety', 'sleep', 'energy', 'social', 'stress', 'mindfulness', 'general'];
-
-    // Create User + Customer in a single transaction
-    const result = await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email: dto.email,
-          name: dto.name,
-          password: hashedPassword,
-          phone: dto.phone || null,
-          role: UserRole.customer,
-        },
-      });
-
-      const customer = await tx.customer.create({
-        data: {
-          userId: user.id,
-          assignedInternId: dto.assignedInternId || null,
-          dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
-          address: dto.address || null,
-          emergencyContact: dto.emergencyContact || null,
-          notes: dto.notes || null,
-          checkinCategories: ALL_CATEGORIES,
-        },
-        include: {
-          user: {
-            select: {
-              id: true, email: true, name: true, role: true,
-              phone: true, telegramId: true, isActive: true,
-              createdAt: true, updatedAt: true,
-            },
-          },
-          assignedIntern: {
-            include: {
-              user: { select: { id: true, email: true, name: true, role: true } },
-            },
-          },
-        },
-      });
-
-      return customer;
-    });
-
-    return { success: true, data: result };
-  }
-
-  async findAll(user: any) {
     let whereClause: any = {};
 
     if (user.role !== UserRole.admin) {

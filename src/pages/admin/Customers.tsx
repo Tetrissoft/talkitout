@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { customersApi, doctorsApi } from '@/services/api';
+import { customersApi, usersApi, doctorsApi } from '@/services/api';
 import type { Customer, Doctor } from '@/types/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -124,21 +124,14 @@ export default function Customers() {
           toast.error(response.error || 'Failed to update patient');
         }
       } else {
-        // Create new patient (User + Customer in one step)
-        const createData: Record<string, any> = {
+        // Create user with role=customer (auto-creates Customer record)
+        const response = await usersApi.create({
           name: formData.name,
           email: formData.email,
-        };
-        if (formData.password) createData.password = formData.password;
-        if (formData.phone) createData.phone = formData.phone;
-        const internId = formData.assignedInternId;
-        if (internId && internId !== 'none') createData.assignedInternId = internId;
-        if (formData.dateOfBirth) createData.dateOfBirth = formData.dateOfBirth;
-        if (formData.address) createData.address = formData.address;
-        if (formData.emergencyContact) createData.emergencyContact = formData.emergencyContact;
-        if (formData.notes) createData.notes = formData.notes;
-
-        const response = await customersApi.createPatient(createData as any);
+          password: formData.password || 'TalkItOut@123',
+          role: 'customer',
+          phone: formData.phone || undefined,
+        });
         if (response.success) {
           toast.success('Patient created successfully');
           loadData();

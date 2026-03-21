@@ -45,6 +45,7 @@ export class UsersService {
       await this.prisma.customer.create({
         data: {
           userId: user.id,
+          checkinCategories: ['mood', 'anxiety', 'sleep', 'energy', 'social', 'stress', 'mindfulness', 'general'],
         },
       });
     }
