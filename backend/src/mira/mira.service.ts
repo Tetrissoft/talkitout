@@ -82,13 +82,27 @@ export class MiraService {
       augmentedPrompt += `\n\n⚠️ CRITICAL: The patient's message contains a crisis keyword ("${crisisCheck.matchedKeyword}"). You MUST call trigger_crisis_alert with severity "high" and respond with empathy, helpline numbers, and therapist notification.`;
     }
 
-    // 6. Call Gemini with function calling
+    // 6. Build the message to send to Gemini
+    let messageForGemini: string;
+    if (isSystemTrigger) {
+      messageForGemini = 'Start a new daily check-in for this patient. Greet them warmly and begin with the first question.';
+    } else if (mode === 'checkin') {
+      // Inject current question context so Gemini knows what the user is answering
+      const nextQuestion = await this.memory.getNextQuestion(patient.customerId);
+      if (nextQuestion) {
+        messageForGemini = `Patient replied: "${userMessage}"\n\nCurrent unanswered question (id: ${nextQuestion.id}, type: ${nextQuestion.type}): "${nextQuestion.text}"\nStore this answer using store_checkin_response with questionId "${nextQuestion.id}".`;
+      } else {
+        messageForGemini = userMessage;
+      }
+    } else {
+      messageForGemini = userMessage;
+    }
+
+    // Call Gemini with function calling
     const reply = await this.callGeminiWithTools(
       augmentedPrompt,
       history,
-      isSystemTrigger
-        ? 'Start a new daily check-in for this patient. Greet them warmly and begin with the first question.'
-        : userMessage,
+      messageForGemini,
       patient,
       conversationId,
     );
@@ -175,7 +189,9 @@ export class MiraService {
       if (!candidate) break;
 
       const functionCalls: FunctionCall[] = [];
-      for (const part of candidate.content.parts) {
+      const parts = candidate.content?.parts;
+      if (!parts) break;
+      for (const part of parts) {
         if (part.functionCall) {
           functionCalls.push(part.functionCall);
         }
@@ -212,7 +228,7 @@ export class MiraService {
       }
 
       // Add function call and response to contents
-      contents.push(candidate.content);
+      if (candidate.content) contents.push(candidate.content);
       contents.push(...functionResponses);
 
       // Call Gemini again with function results
