@@ -432,10 +432,10 @@ export default function Appointments() {
         <Card className="bg-yellow-50 border-yellow-200">
           <CardContent className="pt-6">
             <p className="text-yellow-800">
-              <strong>Note:</strong> You need to create customers before you can
+              <strong>Note:</strong> You need to create patients before you can
               schedule appointments.{' '}
               <a href="/admin/customers" className="underline font-semibold">
-                Go to Customers
+                Go to Patients
               </a>
             </p>
           </CardContent>

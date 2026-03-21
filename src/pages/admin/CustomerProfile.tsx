@@ -176,7 +176,7 @@ export default function CustomerProfile() {
       setMiraConversations(extractArray(miraRes));
       setCrisisAlerts(extractArray(alertsRes));
     } catch (error) {
-      toast.error('Failed to load customer data');
+      toast.error('Failed to load patient data');
     } finally {
       setIsLoading(false);
     }
@@ -434,9 +434,9 @@ export default function CustomerProfile() {
   if (!customer) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-500">Customer not found.</p>
+        <p className="text-slate-500">Patient not found.</p>
         <Button variant="link" onClick={() => navigate('/admin/customers')}>
-          Back to Customers
+          Back to Patients
         </Button>
       </div>
     );
@@ -451,7 +451,7 @@ export default function CustomerProfile() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold text-slate-900">{customer.user.name}</h1>
-          <p className="text-slate-600 mt-1">Customer Profile</p>
+          <p className="text-slate-600 mt-1">Patient Profile</p>
         </div>
       </div>
 
@@ -558,7 +558,7 @@ export default function CustomerProfile() {
                   <FileText className="h-4 w-4" />
                   All Session Notes ({allNotes.length})
                 </CardTitle>
-                <CardDescription>Complete notes history for this customer</CardDescription>
+                <CardDescription>Complete notes history for this patient</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 {allNotes.map((note) => (
@@ -599,7 +599,7 @@ export default function CustomerProfile() {
           {appointments.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-slate-500">
-                No appointments found for this customer.
+                No appointments found for this patient.
               </CardContent>
             </Card>
           ) : (
@@ -1090,7 +1090,7 @@ export default function CustomerProfile() {
                     <Textarea
                       value={infoForm.notes}
                       onChange={(e) => setInfoForm({ ...infoForm, notes: e.target.value })}
-                      placeholder="General notes about this customer"
+                      placeholder="General notes about this patient"
                       rows={3}
                     />
                   </div>
@@ -1176,7 +1176,7 @@ export default function CustomerProfile() {
             <CardHeader>
               <CardTitle className="text-base">Daily Check-in Focus Categories</CardTitle>
               <CardDescription>
-                Select which categories of questions this customer receives in their daily check-ins.
+                Select which categories of questions this patient receives in their daily check-ins.
                 If none selected, questions from all categories will be included.
               </CardDescription>
             </CardHeader>
@@ -1247,7 +1247,7 @@ export default function CustomerProfile() {
                 className="rounded"
               />
               <Label htmlFor="notePrivate" className="cursor-pointer text-sm">
-                Private (not visible to customer)
+                Private (not visible to patient)
               </Label>
             </div>
 

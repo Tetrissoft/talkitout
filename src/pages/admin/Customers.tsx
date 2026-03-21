@@ -136,26 +136,26 @@ export default function Customers() {
         });
 
         if (response.success) {
-          toast.success('Customer updated successfully');
+          toast.success('Patient updated successfully');
           loadData();
           setIsDialogOpen(false);
           resetForm();
         } else {
-          toast.error(response.error || 'Failed to update customer');
+          toast.error(response.error || 'Failed to update patient');
         }
       } else {
         const response = await customersApi.create(submitData as CreateCustomerForm);
         if (response.success) {
-          toast.success('Customer created successfully');
+          toast.success('Patient created successfully');
           loadData();
           setIsDialogOpen(false);
           resetForm();
         } else {
-          toast.error(response.error || 'Failed to create customer');
+          toast.error(response.error || 'Failed to create patient');
         }
       }
     } catch (error) {
-      toast.error('Failed to save customer');
+      toast.error('Failed to save patient');
     }
   };
 
@@ -170,14 +170,14 @@ export default function Customers() {
       );
 
       if (response.success) {
-        toast.success('Customer assigned to intern successfully');
+        toast.success('Patient assigned to intern successfully');
         loadData();
         setIsAssignDialogOpen(false);
         setAssigningCustomer(null);
         setAssignInternId('');
       }
     } catch (error) {
-      toast.error('Failed to assign customer');
+      toast.error('Failed to assign patient');
     }
   };
 
@@ -200,11 +200,11 @@ export default function Customers() {
     try {
       const response = await customersApi.delete(deleteCustomer.id);
       if (response.success) {
-        toast.success('Customer deleted successfully');
+        toast.success('Patient deleted successfully');
         loadData();
       }
     } catch (error) {
-      toast.error('Failed to delete customer');
+      toast.error('Failed to delete patient');
     } finally {
       setDeleteCustomer(null);
     }
@@ -245,25 +245,25 @@ export default function Customers() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Customers</h1>
-          <p className="text-slate-600 mt-2">Manage customer accounts</p>
+          <h1 className="text-3xl font-bold text-slate-900">Patients</h1>
+          <p className="text-slate-600 mt-2">Manage patient accounts</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <UserCog className="h-4 w-4 mr-2" />
-              Add Customer
+              Add Patient
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>
-                {editingCustomer ? 'Edit Customer' : 'Create New Customer'}
+                {editingCustomer ? 'Edit Patient' : 'Create New Patient'}
               </DialogTitle>
               <DialogDescription>
                 {editingCustomer
-                  ? 'Update customer information'
-                  : 'Add a new customer to the system'}
+                  ? 'Update patient information'
+                  : 'Add a new patient to the system'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -365,7 +365,7 @@ export default function Customers() {
 
               <div className="flex gap-2 pt-4">
                 <Button type="submit" className="flex-1">
-                  {editingCustomer ? 'Update' : 'Create'} Customer
+                  {editingCustomer ? 'Update' : 'Create'} Patient
                 </Button>
                 <Button
                   type="button"
@@ -382,7 +382,7 @@ export default function Customers() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Customers</CardTitle>
+          <CardTitle>All Patients</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -400,7 +400,7 @@ export default function Customers() {
               {customers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-slate-500">
-                    No customers found. Create one to get started.
+                    No patients found. Create one to get started.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -481,7 +481,7 @@ export default function Customers() {
       <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assign Customer to Intern</DialogTitle>
+            <DialogTitle>Assign Patient to Intern</DialogTitle>
             <DialogDescription>
               Select an intern to assign to {assigningCustomer?.user.name}
             </DialogDescription>
@@ -537,7 +537,7 @@ export default function Customers() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              customer profile for {deleteCustomer?.user.name}.
+              patient profile for {deleteCustomer?.user.name}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

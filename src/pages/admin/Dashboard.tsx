@@ -79,10 +79,10 @@ export default function Dashboard() {
       bgColor: 'bg-green-100',
     },
     {
-      title: 'Customers',
+      title: 'Patients',
       value: stats.totalCustomers,
       icon: UserCog,
-      description: 'Active customers',
+      description: 'Active patients',
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
@@ -224,7 +224,7 @@ export default function Dashboard() {
                 >
                   <p className="font-medium">Create New User</p>
                   <p className="text-sm text-slate-600">
-                    Add users, doctors, or customers
+                    Add users, doctors, or patients
                   </p>
                 </a>
                 <a
@@ -244,7 +244,7 @@ export default function Dashboard() {
             >
               <p className="font-medium">Schedule Appointment</p>
               <p className="text-sm text-slate-600">
-                Book slots for customers
+                Book slots for patients
               </p>
             </a>
           </CardContent>
