@@ -39,5 +39,4 @@ lerna-debug.log*
 .env.local
 .env.production
 
-# Prisma
-prisma/migrations
+# Prisma - migrations MUST be committed for production deploys

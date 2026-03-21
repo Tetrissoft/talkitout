@@ -22,13 +22,13 @@ export const MIRA_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: 'store_checkin_response',
     description:
-      'Save the patient\'s answer to a check-in question. Extract the answer from their message — it may be a button tap (exact value) or natural language (infer the scale/choice). Include their raw text as answerText for context.',
+      'Save the patient\'s answer to a check-in question. CRITICAL: The questionId MUST be the exact UUID string returned by get_checkin_questions (e.g. "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Do NOT invent or fabricate question IDs. If you do not have the UUID, call get_next_question first to get it.',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
         questionId: {
           type: SchemaType.STRING,
-          description: 'The UUID of the question being answered',
+          description: 'MUST be the exact UUID from get_checkin_questions or get_next_question. Example format: "a1b2c3d4-e5f6-7890-abcd-ef1234567890". Never use made-up IDs like "mood-q1".',
         },
         answerScale: {
           type: SchemaType.NUMBER,
