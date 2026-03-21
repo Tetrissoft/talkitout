@@ -327,7 +327,7 @@ All endpoints are prefixed with `/api`. Swagger docs available at `/api/docs`.
 | Auth         | `POST /auth/login`, `POST /auth/signup`, `GET /auth/validate`, `GET /auth/setup-status`, `POST /auth/setup` |
 | Users        | `GET/POST/PATCH/DELETE /users`                                        |
 | Doctors      | `GET/POST/PATCH/DELETE /doctors`, `POST /doctors/assign-intern`       |
-| Customers    | `GET/POST/PATCH/DELETE /customers`, `POST /customers/assign-intern`   |
+| Customers    | `GET/POST/PATCH/DELETE /customers`, `POST /customers/assign-intern`, `POST /customers/:id/telegram-link` |
 | Appointments | `GET/POST/PATCH/DELETE /appointments`                                 |
 | Time Slots   | `GET/POST/DELETE /time-slots`, `POST /time-slots/bulk`                |
 | Assessments  | `POST /assessments/submit`                                            |

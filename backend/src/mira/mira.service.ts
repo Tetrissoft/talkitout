@@ -39,11 +39,57 @@ export class MiraService {
     );
   }
 
+  async handleTelegramLink(token: string, telegramChatId: string) {
+    const link = await this.prisma.telegramLink.findUnique({
+      where: { token },
+      include: { customer: { include: { user: { select: { name: true } } } } },
+    });
+
+    if (!link) {
+      return { success: false, reply: "This link is invalid or has already been used. Please ask your therapist for a new link." };
+    }
+
+    if (link.expiresAt < new Date()) {
+      await this.prisma.telegramLink.delete({ where: { id: link.id } });
+      return { success: false, reply: "This link has expired. Please ask your therapist for a new link." };
+    }
+
+    // Update customer with Telegram Chat ID
+    await this.prisma.customer.update({
+      where: { id: link.customerId },
+      data: { telegramChatId },
+    });
+
+    // Delete used token
+    await this.prisma.telegramLink.delete({ where: { id: link.id } });
+
+    const name = link.customer.user.name;
+    this.logger.log(`Telegram linked: ${name} → chatId ${telegramChatId}`);
+
+    return {
+      success: true,
+      reply: `Hi ${name}! You're now connected to Mira. I'll check in with you daily to see how you're doing. Take care! 💜`,
+    };
+  }
+
   async handleMessage(
     telegramChatId: string,
     userMessage: string,
     mode: 'checkin' | 'free_chat' = 'checkin',
   ): Promise<MiraResponse> {
+    // 0. Handle /start <token> deep link
+    if (userMessage.startsWith('/start ')) {
+      const token = userMessage.replace('/start ', '').trim();
+      if (token) {
+        const linkResult = await this.handleTelegramLink(token, telegramChatId);
+        return {
+          reply: linkResult.reply,
+          metadata: { crisis_detected: false, sentiment: null, mode, conversationId: '' },
+          checkInData: null,
+        };
+      }
+    }
+
     // 1. Get patient context
     const patient =
       await this.memory.getPatientByTelegramChatId(telegramChatId);

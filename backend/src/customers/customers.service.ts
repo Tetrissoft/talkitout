@@ -4,6 +4,7 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { AssignInternDto } from './dto/assign-intern.dto';
 import { DoctorType, UserRole } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CustomersService {
@@ -306,5 +307,51 @@ export class CustomersService {
     });
 
     return { success: true, message: 'Customer deleted successfully' };
+  }
+
+  async generateTelegramLink(customerId: string) {
+    await this.findOne(customerId);
+
+    const token = randomUUID().replace(/-/g, '');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Upsert — one active link per customer
+    await this.prisma.telegramLink.upsert({
+      where: { customerId },
+      update: { token, expiresAt },
+      create: { customerId, token, expiresAt },
+    });
+
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'mira_your_reflection_bot';
+    const link = `https://t.me/${botUsername}?start=${token}`;
+
+    return { success: true, data: { link, token, expiresAt } };
+  }
+
+  async confirmTelegramLink(token: string, telegramChatId: string) {
+    const link = await this.prisma.telegramLink.findUnique({
+      where: { token },
+      include: { customer: { include: { user: { select: { name: true } } } } },
+    });
+
+    if (!link) {
+      return { success: false, error: 'Invalid or expired link' };
+    }
+
+    if (link.expiresAt < new Date()) {
+      await this.prisma.telegramLink.delete({ where: { id: link.id } });
+      return { success: false, error: 'Link has expired' };
+    }
+
+    // Update customer with Telegram Chat ID
+    await this.prisma.customer.update({
+      where: { id: link.customerId },
+      data: { telegramChatId },
+    });
+
+    // Delete used token
+    await this.prisma.telegramLink.delete({ where: { id: link.id } });
+
+    return { success: true, data: { name: link.customer.user.name, customerId: link.customerId } };
   }
 }
