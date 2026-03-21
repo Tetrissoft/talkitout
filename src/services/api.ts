@@ -214,6 +214,12 @@ export const customersApi = {
       method: 'DELETE',
     });
   },
+
+  generateTelegramLink: async (customerId: string): Promise<ApiResponse<{ link: string; token: string; expiresAt: string }>> => {
+    return apiRequest<{ link: string; token: string; expiresAt: string }>(`/customers/${customerId}/telegram-link`, {
+      method: 'POST',
+    });
+  },
 };
 
 // Appointments API
