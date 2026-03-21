@@ -120,6 +120,10 @@ export default function CustomerProfile() {
   const [crisisAlerts, setCrisisAlerts] = useState<CrisisAlert[]>([]);
   const [expandedConversation, setExpandedConversation] = useState<string | null>(null);
 
+  // Telegram deep link state
+  const [telegramLink, setTelegramLink] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
+
   useEffect(() => {
     if (customerId) loadData();
   }, [customerId]);
@@ -289,6 +293,24 @@ export default function CustomerProfile() {
       }
     } catch (error) {
       toast.error('Failed to save profile');
+    }
+  };
+
+  const handleGenerateTelegramLink = async () => {
+    if (!customer) return;
+    setGeneratingLink(true);
+    try {
+      const res = await customersApi.generateTelegramLink(customer.id);
+      if (res.success && res.data) {
+        setTelegramLink(res.data.link);
+        toast.success('Telegram link generated! Share it with the patient.');
+      } else {
+        toast.error('Failed to generate link');
+      }
+    } catch (error) {
+      toast.error('Failed to generate Telegram link');
+    } finally {
+      setGeneratingLink(false);
     }
   };
 
@@ -1085,7 +1107,44 @@ export default function CustomerProfile() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">Telegram Chat ID</p>
-                    <p className="text-sm font-medium">{customer.telegramChatId || '-'}</p>
+                    {customer.telegramChatId ? (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{customer.telegramChatId}</p>
+                        <span className="text-green-500 text-xs">Connected</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {telegramLink ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={telegramLink}
+                              className="text-xs bg-slate-50 border rounded px-2 py-1 flex-1 min-w-0"
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                navigator.clipboard.writeText(telegramLink);
+                                toast.success('Link copied!');
+                              }}
+                            >
+                              Copy
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleGenerateTelegramLink}
+                            disabled={generatingLink}
+                          >
+                            {generatingLink ? 'Generating...' : 'Generate Telegram Link'}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <p className="text-xs text-slate-500">Address</p>

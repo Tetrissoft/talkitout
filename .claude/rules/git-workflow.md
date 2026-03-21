@@ -217,9 +217,10 @@ User gives a task
 Claude MUST follow this workflow when implementing features or fixes:
 
 ### 1. Create Branch
+**IMPORTANT:** Always branch from `main` (not `develop`). Pull latest first.
 ```bash
-git checkout develop
-git pull origin develop
+git checkout main
+git pull origin main
 git checkout -b feature/descriptive-name
 ```
 

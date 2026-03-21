@@ -66,4 +66,11 @@ export class CustomersController {
   remove(@Param('id') id: string, @Request() req) {
     return this.customersService.remove(id, req.user);
   }
+
+  @Post(':id/telegram-link')
+  @Roles(UserRole.admin, UserRole.therapist)
+  @ApiOperation({ summary: 'Generate Telegram deep link for customer' })
+  generateTelegramLink(@Param('id') id: string) {
+    return this.customersService.generateTelegramLink(id);
+  }
 }
